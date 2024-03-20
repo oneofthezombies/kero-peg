@@ -8,6 +8,7 @@ cc_library(
     copts = ["-std=c++20"],
     includes = ["src"],
     deps = [
+        "@kero_log",
         "@kero_mpsc",
     ],
 )
