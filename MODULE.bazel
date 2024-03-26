@@ -23,7 +23,7 @@ archive_override(
     strip_prefix = "kero-mpsc-" + KERO_MPSC_VERSION,
 )
 
-KERO_LOG_VERSION = "0.1.7"
+KERO_LOG_VERSION = "0.1.8"
 bazel_dep(name = "kero_log", version = KERO_LOG_VERSION)
 archive_override(
     module_name = "kero_log",
