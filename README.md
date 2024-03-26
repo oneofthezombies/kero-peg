@@ -1,6 +1,6 @@
 # Kero PEG
 
-A memory-safe "PEG parser" implementation written in C++.  
+A memory-safe "PEG/Packrat parser" implementation written in C++.  
 
 ## Why I Created This
 
