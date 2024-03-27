@@ -3,28 +3,25 @@
 namespace kero {
 namespace peg {
 
-auto IsWhitespace(const char c) noexcept -> bool {
-  return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-}
+Eaten::Eaten(const char character, const size_t position) noexcept
+    : character(character), position(position) {}
 
 Lexer::Lexer(const std::string_view source) noexcept : source_(source) {}
 
 auto Lexer::Next() noexcept -> std::optional<std::string_view> {
   while (true) {
-    const auto eaten_opt = Eat();
-    if (!eaten_opt) {
-      return std::nullopt;
-    }
-
-    const auto eaten = *eaten_opt;
-    if (IsWhitespace(eaten.character)) {
-      continue;
-    } else if (eaten.character == '"') {
-      return ParseTerminal('"', eaten.position);
-    } else if (eaten.character == '\'') {
-      return ParseTerminal('\'', eaten.position);
+    if (const auto eaten = Eat()) {
+      if (IsWhitespace(eaten->character)) {
+        continue;
+      } else if (eaten->character == '"') {
+        return ParseQuoted('"', eaten->position);
+      } else if (eaten->character == '\'') {
+        return ParseQuoted('\'', eaten->position);
+      } else {
+        return ParseNonquoted(eaten->character, eaten->position);
+      }
     } else {
-      return ParseNonTerminal(eaten.character, eaten.position);
+      return std::nullopt;
     }
   }
 }
@@ -39,8 +36,8 @@ auto Lexer::Eat() noexcept -> std::optional<Eaten> {
   return eaten;
 }
 
-auto Lexer::ParseTerminal(const char quote_like,
-                          const size_t quote_start) noexcept
+auto Lexer::ParseQuoted(const char quote_like,
+                        const size_t quote_start) noexcept
     -> std::optional<std::string_view> {
   while (true) {
     if (const auto eaten = Eat()) {
@@ -56,8 +53,8 @@ auto Lexer::ParseTerminal(const char quote_like,
   }
 }
 
-auto Lexer::ParseNonTerminal(const char character,
-                             const size_t character_start) noexcept
+auto Lexer::ParseNonquoted(const char character,
+                           const size_t character_start) noexcept
     -> std::optional<std::string_view> {
   while (true) {
     if (const auto eaten = Eat()) {
@@ -72,9 +69,10 @@ auto Lexer::ParseNonTerminal(const char character,
   }
 }
 
-auto Lexer::Source() const noexcept -> std::string_view { return source_; }
-
-auto Lexer::Position() const noexcept -> size_t { return position_; }
+auto Lexer::IsWhitespace(const char character) const noexcept -> bool {
+  return character == ' ' || character == '\t' || character == '\n' ||
+         character == '\r';
+}
 
 } // namespace peg
 } // namespace kero

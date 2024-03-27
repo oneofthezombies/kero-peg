@@ -7,8 +7,10 @@ namespace kero {
 namespace peg {
 
 struct Eaten {
-  char character{};
-  size_t position{};
+  char character;
+  size_t position;
+
+  Eaten(const char character, const size_t position) noexcept;
 };
 
 class Lexer {
@@ -22,16 +24,15 @@ public:
   auto operator=(const Lexer&) -> Lexer& = delete;
 
   auto Next() noexcept -> std::optional<std::string_view>;
-  auto Source() const noexcept -> std::string_view;
-  auto Position() const noexcept -> size_t;
 
 private:
   auto Eat() noexcept -> std::optional<Eaten>;
-  auto ParseTerminal(const char quote_like, const size_t quote_start) noexcept
+  auto ParseQuoted(const char quote_like, const size_t quote_start) noexcept
       -> std::optional<std::string_view>;
-  auto ParseNonTerminal(const char character,
-                        const size_t character_start) noexcept
+  auto ParseNonquoted(const char character,
+                      const size_t character_start) noexcept
       -> std::optional<std::string_view>;
+  auto IsWhitespace(const char character) const noexcept -> bool;
 
   std::string_view source_;
   size_t position_{};
