@@ -12,14 +12,14 @@ enum class FindTokenErrorCode : int32_t {
   kTokenNotFound,
 };
 
-struct FindTokenData {
+struct FindTokenResult {
   std::string_view token;
   size_t next_position;
 };
 
 auto FindToken(const std::string_view source, const size_t position,
                const std::string_view separators = " \t\n") noexcept
-    -> Result<FindTokenData, FindTokenErrorCode>;
+    -> Result<FindTokenResult, FindTokenErrorCode>;
 
 } // namespace peg
 } // namespace kero
