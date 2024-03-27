@@ -7,8 +7,13 @@
 namespace kero {
 namespace peg {
 
-auto ParseGrammar(const GrammarContext& context) noexcept
-    -> Result<RuleSet, ParseGrammarErrorCode> {}
+GrammarParser::GrammarParser(const GrammarContext& context) noexcept
+    : context_(context) {}
+
+auto GrammarParser::Parse() noexcept
+    -> Result<RuleSet, GrammarParserErrorCode> {
+  return Result<RuleSet, GrammarParserErrorCode>{};
+}
 
 } // namespace peg
 } // namespace kero
