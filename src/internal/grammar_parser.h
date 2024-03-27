@@ -6,13 +6,13 @@
 namespace kero {
 namespace peg {
 
-enum class GrammarParserErrorCode : int32_t {};
-
 class GrammarContext;
 class RuleSet;
 
 class GrammarParser {
 public:
+  enum class Error : int32_t {};
+
   GrammarParser(const GrammarContext& context) noexcept;
   ~GrammarParser() noexcept = default;
 
@@ -21,7 +21,7 @@ public:
   auto operator=(GrammarParser&&) -> GrammarParser& = delete;
   auto operator=(const GrammarParser&) -> GrammarParser& = delete;
 
-  auto Parse() noexcept -> Result<RuleSet, GrammarParserErrorCode>;
+  auto Parse() noexcept -> void;
 
 private:
   const GrammarContext& context_;

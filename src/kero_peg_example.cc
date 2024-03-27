@@ -1,12 +1,14 @@
-#include "kero_log.h"
 #include "kero_peg.h"
 
+#include <string>
+
+std::string kSource = "A\n"
+                      "<-\n"
+                      "\"Hello World!\"";
+
 auto main() -> int {
-  using namespace kero::peg;
-  const auto expr = Sequence{{
-      TerminalCharacter{'a'},
-      TerminalCharacter{'b'},
-      TerminalCharacter{'c'},
-  }};
+  const kero::peg::GrammarContext context{std::move(kSource)};
+  kero::peg::GrammarParser parser{context};
+  parser.Parse();
   return 0;
 }

@@ -1,6 +1,13 @@
 cc_library(
     name = "kero_peg",
     srcs = [
+        "src/internal/core.h",
+        "src/internal/grammar_context.cc",
+        "src/internal/grammar_context.h",
+        "src/internal/grammar_parser.cc",
+        "src/internal/grammar_parser.h",
+        "src/internal/lexer.cc",
+        "src/internal/lexer.h",
     ],
     hdrs = [
         "src/kero_peg.h",
@@ -8,8 +15,6 @@ cc_library(
     copts = ["-std=c++20"],
     includes = ["src"],
     deps = [
-        "@kero_log",
-        "@kero_mpsc",
     ],
 )
 

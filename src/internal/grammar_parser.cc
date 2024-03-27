@@ -1,8 +1,8 @@
 #include "grammar_parser.h"
 
 #include "grammar_context.h"
-#include <sstream>
-#include <string_view>
+#include "lexer.h"
+#include <iostream>
 
 namespace kero {
 namespace peg {
@@ -10,9 +10,11 @@ namespace peg {
 GrammarParser::GrammarParser(const GrammarContext& context) noexcept
     : context_(context) {}
 
-auto GrammarParser::Parse() noexcept
-    -> Result<RuleSet, GrammarParserErrorCode> {
-  return Result<RuleSet, GrammarParserErrorCode>{};
+auto GrammarParser::Parse() noexcept -> void {
+  Lexer lexer{context_.Source()};
+  while (auto token = lexer.Next()) {
+    std::cout << *token << std::endl;
+  }
 }
 
 } // namespace peg
