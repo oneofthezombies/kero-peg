@@ -1,6 +1,7 @@
 #ifndef KERO_PEG_CORE_H
 #define KERO_PEG_CORE_H
 
+#include <cstdint>
 #include <optional>
 #include <variant>
 

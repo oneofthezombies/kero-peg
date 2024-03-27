@@ -14,35 +14,30 @@ auto GrammarParser::Parse() noexcept -> Result<void, Error> {
   Lexer lexer{context_.Source()};
   std::unordered_map<Identifier, Expression> rule_map;
   while (true) {
-    const auto identifier = lexer.Next();
-    if (!identifier) {
-      return Error::kIdentifierNotFound;
+    const auto token = lexer.Next();
+    if (!token) {
+      std::cout << "token is empty" << std::endl;
+      break;
     }
 
-    if (rule_map.find(*identifier) != rule_map.end()) {
-      return Error::kIdentifierDuplicate;
-    }
+    const auto kind = token->kind;
+    const auto value = token->value;
+    std::cout << "kind: " << static_cast<int>(kind) << " value: " << value
+              << std::endl;
 
-    const auto left_arrow = lexer.Next();
-    if (!left_arrow) {
-      return Error::kLeftArrowNotFound;
+    switch (kind) {
+    case TokenKind::kEndOfFile:
+      return {};
     }
-
-    if (left_arrow != "<-") {
-      return Error::kLeftArrowInvalid;
-    }
-
-    const auto expression = lexer.Next();
-    if (!expression) {
-      return Error::kExpressionNotFound;
-    }
-
-    rule_map.emplace(*identifier, *expression);
   }
 
-  for (const auto& [identifier, expression] : rule_map) {
-    std::cout << "Rule: " << identifier << " <- " << expression << std::endl;
-  }
+  return {};
+}
+
+auto operator<<(std::ostream& os, const GrammarParser::Error& error)
+    -> std::ostream& {
+  os << static_cast<int32_t>(error);
+  return os;
 }
 
 } // namespace peg
