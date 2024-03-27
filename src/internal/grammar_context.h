@@ -16,7 +16,7 @@ public:
   auto operator=(GrammarContext&&) -> GrammarContext& = delete;
   auto operator=(const GrammarContext&) -> GrammarContext& = delete;
 
-  auto Source() const noexcept -> const std::string& { return source_; }
+  auto Source() const noexcept -> std::string_view;
 
 private:
   std::string source_;
