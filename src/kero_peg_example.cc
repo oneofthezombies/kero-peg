@@ -1,10 +1,12 @@
 #include "kero_log.h"
+#include "kero_peg.h"
 
 auto main() -> int {
-  kero::log::GlobalCenter().SetLogLevel(kero::log::Level::kDebug);
-  kero::log::GlobalCenter().AddTransport(
-      std::make_unique<kero::log::ConsoleTransport>());
-  kero::log::Debug("Hello, world!").Log();
-  kero::log::GlobalCenter().Shutdown();
+  using namespace kero::peg;
+  const auto expr = Sequence{{
+      TerminalCharacter{'a'},
+      TerminalCharacter{'b'},
+      TerminalCharacter{'c'},
+  }};
   return 0;
 }

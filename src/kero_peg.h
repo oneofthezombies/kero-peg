@@ -5,12 +5,29 @@
 
 namespace kero {
 namespace peg {
-class Loader {
-public:
-  Loader() = default;
-  ~Loader() = default;
-  KERO_STRUCT_TYPE_MOVE(Loader);
+
+enum class ExpressionKind : int32_t {
+  kUnknown = 0,
+  kTerminal,
+  kSequence,
+  kOrderedChoice,
+  kAndPredicate,
+  kNotPredicate,
+  kOneOrMore,
+  kZeroOrMore,
+  kOptional,
+  kGroup,
+  kTerminalRange,
+  kAnyCharacter,
 };
+
+class PackratParser {
+public:
+  auto Parse(std::string&& input) -> void;
+
+private:
+};
+
 } // namespace peg
 } // namespace kero
 
