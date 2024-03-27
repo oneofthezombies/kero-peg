@@ -2,6 +2,7 @@
 #define KERO_PEG_INTERNAL_GRAMMAR_PARSER_H
 
 #include "core.h"
+#include <string_view>
 
 namespace kero {
 namespace peg {
@@ -9,9 +10,19 @@ namespace peg {
 class GrammarContext;
 class RuleSet;
 
+using Identifier = std::string_view;
+using Expression = std::string_view;
+using Rule = std::pair<Identifier, Expression>;
+
 class GrammarParser {
 public:
-  enum class Error : int32_t {};
+  enum class Error : int32_t {
+    kIdentifierNotFound = 0,
+    kIdentifierDuplicate,
+    kLeftArrowNotFound,
+    kLeftArrowInvalid,
+    kExpressionNotFound,
+  };
 
   GrammarParser(const GrammarContext& context) noexcept;
   ~GrammarParser() noexcept = default;
@@ -21,11 +32,14 @@ public:
   auto operator=(GrammarParser&&) -> GrammarParser& = delete;
   auto operator=(const GrammarParser&) -> GrammarParser& = delete;
 
-  auto Parse() noexcept -> void;
+  auto Parse() noexcept -> Result<void, Error>;
 
 private:
   const GrammarContext& context_;
 };
+
+auto operator<<(std::ostream& os, const GrammarParser::Error& error)
+    -> std::ostream&;
 
 } // namespace peg
 } // namespace kero
