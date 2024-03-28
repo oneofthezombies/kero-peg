@@ -11,10 +11,6 @@ auto main() -> int {
   const kero::peg::GrammarContext context{std::move(kSource)};
   kero::peg::GrammarParser parser{context};
   auto result = parser.Parse();
-  if (result.IsError()) {
-    std::cout << *result.Error() << std::endl;
-    return 1;
-  }
-
+  std::cout << result << std::endl;
   return 0;
 }

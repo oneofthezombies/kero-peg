@@ -11,12 +11,12 @@ auto NextOk(kero::peg::Lexer& lexer, const kero::peg::TokenKind kind,
   EXPECT_EQ(token.value, value);
 }
 
-auto NextError(kero::peg::Lexer& lexer,
-               const kero::peg::LexerNextError error) noexcept -> void {
+auto NextErr(kero::peg::Lexer& lexer,
+             const kero::peg::TokenizeErrorCode error_code) noexcept -> void {
   auto token_res = lexer.Next();
-  ASSERT_TRUE(token_res.IsError());
-  const auto err = *token_res.Error();
-  EXPECT_EQ(err, error);
+  ASSERT_TRUE(token_res.IsErr());
+  const auto error = *token_res.Err();
+  EXPECT_EQ(error.code, error_code);
 }
 
 TEST(LexerTest, Empty) {
@@ -124,98 +124,98 @@ TEST(LexerTest, LeftArrow) {
 
 TEST(LexerTest, Terminal) {
   auto lexer{kero::peg::Lexer{"\"A\""}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalWithSpace) {
   auto lexer{kero::peg::Lexer{"\"A\" "}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalWithTab) {
   auto lexer{kero::peg::Lexer{"\"A\"\t"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalWithNewLine) {
   auto lexer{kero::peg::Lexer{"\"A\"\n"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalAfterSpace) {
   auto lexer{kero::peg::Lexer{" \"A\""}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalAfterTab) {
   auto lexer{kero::peg::Lexer{"\t\"A\""}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalAfterNewLine) {
   auto lexer{kero::peg::Lexer{"\n\"A\""}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"A\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalWithEscape) {
   auto lexer{kero::peg::Lexer{"\"\\\"\""}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"\\\"");
-  NextError(lexer, kero::peg::LexerNextError::kMatchFailed);
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\\");
+  NextErr(lexer, kero::peg::TokenizeErrorCode::kMatchFailed);
 }
 
 TEST(LexerTest, TerminalUsingSingleQuote) {
   auto lexer{kero::peg::Lexer{"'A'"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteWithSpace) {
   auto lexer{kero::peg::Lexer{"'A' "}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteWithTab) {
   auto lexer{kero::peg::Lexer{"'A'\t"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteWithNewLine) {
   auto lexer{kero::peg::Lexer{"'A'\n"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteAfterSpace) {
   auto lexer{kero::peg::Lexer{" 'A'"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteAfterTab) {
   auto lexer{kero::peg::Lexer{"\t'A'"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteAfterNewLine) {
   auto lexer{kero::peg::Lexer{"\n'A'"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'A'");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
 TEST(LexerTest, TerminalUsingSingleQuoteWithEscape) {
   auto lexer{kero::peg::Lexer{"'\\''"}};
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "'\\'");
-  NextError(lexer, kero::peg::LexerNextError::kMatchFailed);
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\\");
+  NextErr(lexer, kero::peg::TokenizeErrorCode::kMatchFailed);
 }
 
 TEST(LexerTest, NonTerminalFromNonTerminal) {
@@ -238,7 +238,7 @@ TEST(LexerTest, NonTerminalFromTerminal) {
   auto lexer{kero::peg::Lexer{"A <- \"B\""}};
   NextOk(lexer, kero::peg::TokenKind::kNonTerminal, "A");
   NextOk(lexer, kero::peg::TokenKind::kLeftArrow, "<-");
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"B\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "B");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
@@ -260,7 +260,7 @@ TEST(LexerTest, NonTerminalExpressionAndTerminalExpression) {
   NextOk(lexer, kero::peg::TokenKind::kNonTerminal, "B");
   NextOk(lexer, kero::peg::TokenKind::kNonTerminal, "C");
   NextOk(lexer, kero::peg::TokenKind::kLeftArrow, "<-");
-  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "\"D\"");
+  NextOk(lexer, kero::peg::TokenKind::kQuotedTerminal, "D");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
 
@@ -320,6 +320,122 @@ TEST(LexerTest, Dot) {
 
 TEST(LexerTest, BracketedTerminal) {
   auto lexer{kero::peg::Lexer{"[a]"}};
-  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "[a]");
+  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "a");
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalEmpty) {
+  auto lexer{kero::peg::Lexer{"[]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::kBracketedTerminalEmpty);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignLeftNotFound) {
+  auto lexer{kero::peg::Lexer{"[-a]"}};
+  NextErr(
+      lexer,
+      kero::peg::TokenizeErrorCode::kBracketedTerminalMinusSignLeftNotFound);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightNotFound) {
+  auto lexer{kero::peg::Lexer{"[a-]"}};
+  NextErr(
+      lexer,
+      kero::peg::TokenizeErrorCode::kBracketedTerminalMinusSignRightNotFound);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightNotNumber) {
+  auto lexer{kero::peg::Lexer{"[0-a]"}};
+  NextErr(
+      lexer,
+      kero::peg::TokenizeErrorCode::kBracketedTerminalMinusSignRightNotNumber);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightNumberEqualWithLeft) {
+  auto lexer{kero::peg::Lexer{"[0-0]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightNumberEqualWithLeft);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightNumberLessThanLeft) {
+  auto lexer{kero::peg::Lexer{"[1-0]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightNumberLessThanLeft);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignNumber) {
+  auto lexer{kero::peg::Lexer{"[0-9]"}};
+  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "0-9");
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightNotLowercase) {
+  auto lexer{kero::peg::Lexer{"[a-A]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightNotLowercase);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightLowercaseEqualWithLeft) {
+  auto lexer{kero::peg::Lexer{"[a-a]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightLowercaseEqualWithLeft);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightLowercaseLessThanLeft) {
+  auto lexer{kero::peg::Lexer{"[b-a]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightLowercaseLessThanLeft);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignLowercase) {
+  auto lexer{kero::peg::Lexer{"[a-z]"}};
+  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "a-z");
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightNotUppercase) {
+  auto lexer{kero::peg::Lexer{"[A-a]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightNotUppercase);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightUppercaseEqualWithLeft) {
+  auto lexer{kero::peg::Lexer{"[A-A]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightUppercaseEqualWithLeft);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignRightUppercaseLessThanLeft) {
+  auto lexer{kero::peg::Lexer{"[B-A]"}};
+  NextErr(lexer, kero::peg::TokenizeErrorCode::
+                     kBracketedTerminalMinusSignRightUppercaseLessThanLeft);
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalMinusSignUppercase) {
+  auto lexer{kero::peg::Lexer{"[A-Z]"}};
+  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "A-Z");
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalAlphabet) {
+  auto lexer{kero::peg::Lexer{"[a-zA-Z]"}};
+  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "a-zA-Z");
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
+
+TEST(LexerTest, BracketedTerminalAlphabetNumber) {
+  auto lexer{kero::peg::Lexer{"[a-zA-Z0-9]"}};
+  NextOk(lexer, kero::peg::TokenKind::kBracketedTerminal, "a-zA-Z0-9");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <ostream>
 #include <variant>
 
 namespace kero {
@@ -27,7 +28,7 @@ public:
 
   auto IsOk() const noexcept -> bool { return std::holds_alternative<T>(var_); }
 
-  auto IsError() const noexcept -> bool {
+  auto IsErr() const noexcept -> bool {
     return std::holds_alternative<E>(var_);
   }
 
@@ -39,8 +40,8 @@ public:
     return std::nullopt;
   }
 
-  auto Error() noexcept -> std::optional<E> {
-    if (IsError()) {
+  auto Err() noexcept -> std::optional<E> {
+    if (IsErr()) {
       return std::get<E>(var_);
     }
 
@@ -50,6 +51,22 @@ public:
 private:
   std::variant<T, E> var_;
 };
+
+template <typename T, typename E>
+auto operator<<(std::ostream& os, const Result<T, E>& result) -> std::ostream& {
+  os << "Result{";
+  if (result.IsOk()) {
+    os << "Ok{";
+    os << *result.Ok();
+    os << "}";
+  } else {
+    os << "Err{";
+    os << *result.Err();
+    os << "}";
+  }
+  os << "}";
+  return os;
+}
 
 template <typename E> class Result<void, E> {
 public:
@@ -64,12 +81,12 @@ public:
 
   auto IsOk() const noexcept -> bool { return !error_; }
 
-  auto IsError() const noexcept -> bool { return !!error_; }
+  auto IsErr() const noexcept -> bool { return !!error_; }
 
   auto Ok() noexcept -> void {}
 
-  auto Error() noexcept -> std::optional<E> {
-    if (IsError()) {
+  auto Err() noexcept -> std::optional<E> {
+    if (IsErr()) {
       return error_;
     }
 
@@ -79,6 +96,23 @@ public:
 private:
   std::optional<E> error_;
 };
+
+template <typename E>
+auto operator<<(std::ostream& os, const Result<void, E>& result)
+    -> std::ostream& {
+  os << "Result{";
+  if (result.IsOk()) {
+    os << "Ok{";
+    os << "void";
+    os << "}";
+  } else {
+    os << "Err{";
+    os << *result.Err();
+    os << "}";
+  }
+  os << "}";
+  return os;
+}
 
 } // namespace peg
 } // namespace kero

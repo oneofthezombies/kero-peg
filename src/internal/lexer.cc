@@ -3,10 +3,13 @@
 #include <cctype>
 #include <ostream>
 
+#include "core.h"
+
 namespace kero {
 namespace peg {
 
-auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
+auto operator<<(std::ostream& os, const TokenKind kind) noexcept
+    -> std::ostream& {
   switch (kind) {
   case TokenKind::kEndOfFile:
     os << "EndOfFile";
@@ -61,21 +64,106 @@ auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
   return os;
 }
 
-auto operator<<(std::ostream& os, const LexerNextError error) -> std::ostream& {
+Location::Location(const size_t position, const size_t line,
+                   const size_t column) noexcept
+    : position{position}, line{line}, column{column} {}
+
+auto operator<<(std::ostream& os, const Location& location) noexcept
+    -> std::ostream& {
+  os << "Location{";
+  os << "position=" << location.position;
+  os << ", ";
+  os << "line=" << location.line;
+  os << ", ";
+  os << "column=" << location.column;
+  os << "}";
+  return os;
+}
+
+auto operator<<(std::ostream& os, const Token& token) noexcept
+    -> std::ostream& {
+  os << "Token{";
+  os << "kind=" << token.kind;
+  os << ", ";
+  os << "value=" << token.value;
+  os << ", ";
+  os << "original=" << token.original;
+  os << ", ";
+  os << "original_start=" << token.original_start;
+  os << ", ";
+  os << "original_end=" << token.original_end;
+  os << "}";
+  return os;
+}
+
+auto operator<<(std::ostream& os, const TokenizeErrorCode error) noexcept
+    -> std::ostream& {
   switch (error) {
-  case LexerNextError::kMatchFailed:
+  case TokenizeErrorCode::kMatchFailed:
     os << "MatchFailed";
     break;
-  case LexerNextError::kMatcherNotFound:
-    os << "MatcherNotFound";
+  case TokenizeErrorCode::kInternalMatcherNotFound:
+    os << "InternalMatcherNotFound";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalEmpty:
+    os << "BracketedTerminalEmpty";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignLeftNotFound:
+    os << "BracketedTerminalMinusSignLeftNotFound";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightNotFound:
+    os << "BracketedTerminalMinusSignRightNotFound";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightNotNumber:
+    os << "BracketedTerminalMinusSignRightNotNumber";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightNumberEqualWithLeft:
+    os << "BracketedTerminalMinusSignRightNumberEqualWithLeft";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightNumberLessThanLeft:
+    os << "BracketedTerminalMinusSignRightNumberLessThanLeft";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightNotLowercase:
+    os << "BracketedTerminalMinusSignRightNotLowercase";
+    break;
+  case TokenizeErrorCode::
+      kBracketedTerminalMinusSignRightLowercaseEqualWithLeft:
+    os << "BracketedTerminalMinusSignRightLowercaseEqualWithLeft";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightLowercaseLessThanLeft:
+    os << "BracketedTerminalMinusSignRightLowercaseLessThanLeft";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightNotUppercase:
+    os << "BracketedTerminalMinusSignRightNotUppercase";
+    break;
+  case TokenizeErrorCode::
+      kBracketedTerminalMinusSignRightUppercaseEqualWithLeft:
+    os << "BracketedTerminalMinusSignRightUppercaseEqualWithLeft";
+    break;
+  case TokenizeErrorCode::kBracketedTerminalMinusSignRightUppercaseLessThanLeft:
+    os << "BracketedTerminalMinusSignRightUppercaseLessThanLeft";
     break;
   }
 
   return os;
 }
 
+TokenizeError::TokenizeError(const TokenizeErrorCode code,
+                             const Location location) noexcept
+    : code{code}, location{location} {}
+
+auto operator<<(std::ostream& os, const TokenizeError& error) noexcept
+    -> std::ostream& {
+  os << "TokenizeError{";
+  os << "code=" << error.code;
+  os << ", ";
+  os << "location=" << error.location;
+  os << "}";
+  return os;
+}
+
 LexerContext::LexerContext(const std::string_view source) noexcept
-    : source_(source) {}
+    : source_{source} {}
 
 auto LexerContext::Peek() const noexcept -> std::optional<char> {
   if (position_ >= source_.size()) {
@@ -94,6 +182,10 @@ auto LexerContext::Position() const noexcept -> size_t { return position_; }
 auto LexerContext::Line() const noexcept -> size_t { return line_; }
 
 auto LexerContext::Column() const noexcept -> size_t { return column_; }
+
+auto LexerContext::Location() const noexcept -> kero::peg::Location {
+  return kero::peg::Location{position_, line_, column_};
+}
 
 auto LexerContext::Match(const std::string_view expected) const noexcept
     -> std::optional<std::string_view> {
@@ -182,8 +274,10 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
 
             return "";
           }},
-      LexerMatcher{TokenKind::kWhitespace, OnMatchSimple({" ", "\t"}), true},
-      LexerMatcher{TokenKind::kNewLine, OnMatchSimple({"\n", "\r\n"}), true},
+      LexerMatcher{TokenKind::kWhitespace, OnMatchSimple({" ", "\t"}),
+                   std::nullopt, true},
+      LexerMatcher{TokenKind::kNewLine, OnMatchSimple({"\n", "\r\n"}),
+                   std::nullopt, true},
       LexerMatcher{
           TokenKind::kLeftArrow,
           OnMatchSimple({"<-"}),
@@ -224,14 +318,119 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
           TokenKind::kDot,
           OnMatchSimple({"."}),
       },
+      LexerMatcher{TokenKind::kQuotedTerminal,
+                   OnMatchAround({{'\'', '\''}, {'"', '"'}}),
+                   [](const LexerContext& ctx, const std::string_view original)
+                       -> Result<std::string_view, TokenizeError> {
+                     return original.substr(1, original.size() - 2);
+                   }},
       LexerMatcher{
-          TokenKind::kQuotedTerminal,
-          OnMatchAround({{'\'', '\''}, {'"', '"'}}),
-      },
-      LexerMatcher{
-          TokenKind::kBracketedTerminal,
-          OnMatchAround({{'[', ']'}}),
-      },
+          TokenKind::kBracketedTerminal, OnMatchAround({{'[', ']'}}),
+          [](const LexerContext& ctx, const std::string_view original)
+              -> Result<std::string_view, TokenizeError> {
+            std::optional<char> left{};
+            std::optional<char> right{};
+            auto value{original.substr(1, original.size() - 2)};
+            auto location = ctx.Location();
+            location.position += 1;
+            location.column += 1;
+
+            if (value.empty()) {
+              return TokenizeError{TokenizeErrorCode::kBracketedTerminalEmpty,
+                                   location};
+            }
+
+            for (size_t i = 0; i < value.size(); ++i) {
+              auto error = [&location, i](const TokenizeErrorCode code)
+                  -> Result<std::string_view, TokenizeError> {
+                location.position += i;
+                location.column += i;
+                return TokenizeError{code, location};
+              };
+
+              const auto current = value[i];
+              if (i > 0) {
+                left = value[i - 1];
+              } else {
+                left = std::nullopt;
+              }
+
+              if (i < value.size() - 1) {
+                right = value[i + 1];
+              } else {
+                right = std::nullopt;
+              }
+
+              if (current == '-') {
+                if (!left) {
+                  return error(TokenizeErrorCode::
+                                   kBracketedTerminalMinusSignLeftNotFound);
+                }
+
+                if (!right) {
+                  return error(TokenizeErrorCode::
+                                   kBracketedTerminalMinusSignRightNotFound);
+                }
+
+                if (std::isdigit(*left)) {
+                  if (!std::isdigit(*right)) {
+                    return error(TokenizeErrorCode::
+                                     kBracketedTerminalMinusSignRightNotNumber);
+                  }
+
+                  if (*left == *right) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightNumberEqualWithLeft);
+                  }
+
+                  if (*left > *right) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightNumberLessThanLeft);
+                  }
+                } else if (std::islower(*left)) {
+                  if (!std::islower(*right)) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightNotLowercase);
+                  }
+
+                  if (*left == *right) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightLowercaseEqualWithLeft);
+                  }
+
+                  if (*left > *right) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightLowercaseLessThanLeft);
+                  }
+                } else if (std::isupper(*left)) {
+                  if (!std::isupper(*right)) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightNotUppercase);
+                  }
+
+                  if (*left == *right) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightUppercaseEqualWithLeft);
+                  }
+
+                  if (*left > *right) {
+                    return error(
+                        TokenizeErrorCode::
+                            kBracketedTerminalMinusSignRightUppercaseLessThanLeft);
+                  }
+                }
+              }
+            }
+
+            return value;
+          }},
       LexerMatcher{
           TokenKind::kNonTerminal,
           [](const LexerContext& ctx) -> std::optional<std::string_view> {
@@ -257,7 +456,7 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
   }; // matchers_
 };
 
-auto Lexer::Next() noexcept -> Result<Token, LexerNextError> {
+auto Lexer::Next() noexcept -> Result<Token, TokenizeError> {
   while (true) {
     std::optional<size_t> matcher_i = std::nullopt;
     std::optional<std::string_view> matched = std::nullopt;
@@ -270,14 +469,17 @@ auto Lexer::Next() noexcept -> Result<Token, LexerNextError> {
       }
     }
 
+    const auto original_start = context_.Location();
     if (!matched) {
-      return LexerNextError::kMatchFailed;
+      return TokenizeError{TokenizeErrorCode::kMatchFailed, original_start};
     }
 
     context_.Consume(matched->size());
+    const auto original_end = context_.Location();
 
     if (!matcher_i) {
-      return LexerNextError::kMatcherNotFound;
+      return TokenizeError{TokenizeErrorCode::kInternalMatcherNotFound,
+                           original_start};
     }
 
     const auto& matcher = matchers_[*matcher_i];
@@ -285,7 +487,20 @@ auto Lexer::Next() noexcept -> Result<Token, LexerNextError> {
       continue;
     }
 
-    return Token{matcher.kind, *matched};
+    const auto original = *matched;
+    if (matcher.on_parse) {
+      auto res = (*matcher.on_parse)(context_, original);
+      if (res.IsErr()) {
+        return *res.Err();
+      }
+
+      return Token{
+          original_start, original_end, original, *res.Ok(), matcher.kind,
+      };
+    }
+
+    return Token{original_start, original_end, original, original,
+                 matcher.kind};
   }
 }
 

@@ -29,12 +29,30 @@ enum class TokenKind {
   kBracketedTerminal, // e.g. [a]
 };
 
-auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream&;
+auto operator<<(std::ostream& os, const TokenKind kind) noexcept
+    -> std::ostream&;
+
+struct Location {
+  size_t position;
+  size_t line;
+  size_t column;
+
+  Location(const size_t position, const size_t line,
+           const size_t column) noexcept;
+};
+
+auto operator<<(std::ostream& os, const Location& location) noexcept
+    -> std::ostream&;
 
 struct Token {
-  TokenKind kind;
+  Location original_start;
+  Location original_end;
+  std::string_view original;
   std::string_view value;
+  TokenKind kind;
 };
+
+auto operator<<(std::ostream& os, const Token& token) noexcept -> std::ostream&;
 
 class LexerContext {
 public:
@@ -45,6 +63,7 @@ public:
   auto Position() const noexcept -> size_t;
   auto Line() const noexcept -> size_t;
   auto Column() const noexcept -> size_t;
+  auto Location() const noexcept -> Location;
   auto Match(const std::string_view expected) const noexcept
       -> std::optional<std::string_view>;
   auto Consume(const size_t size) noexcept -> bool;
@@ -56,21 +75,47 @@ private:
   size_t column_{1};
 };
 
+enum class TokenizeErrorCode : int32_t {
+  kMatchFailed = 0,
+  kInternalMatcherNotFound,
+  kBracketedTerminalEmpty,
+  kBracketedTerminalMinusSignLeftNotFound,
+  kBracketedTerminalMinusSignRightNotFound,
+  kBracketedTerminalMinusSignRightNotNumber,
+  kBracketedTerminalMinusSignRightNumberEqualWithLeft,
+  kBracketedTerminalMinusSignRightNumberLessThanLeft,
+  kBracketedTerminalMinusSignRightNotLowercase,
+  kBracketedTerminalMinusSignRightLowercaseEqualWithLeft,
+  kBracketedTerminalMinusSignRightLowercaseLessThanLeft,
+  kBracketedTerminalMinusSignRightNotUppercase,
+  kBracketedTerminalMinusSignRightUppercaseEqualWithLeft,
+  kBracketedTerminalMinusSignRightUppercaseLessThanLeft,
+};
+
+auto operator<<(std::ostream& os, const TokenizeErrorCode error) noexcept
+    -> std::ostream&;
+
+struct TokenizeError {
+  TokenizeErrorCode code;
+  Location location;
+
+  TokenizeError(const TokenizeErrorCode code, const Location location) noexcept;
+};
+
+auto operator<<(std::ostream& os, const TokenizeError& error) noexcept
+    -> std::ostream&;
+
 using OnMatch =
     std::function<std::optional<std::string_view>(const LexerContext&)>;
+using OnParse = std::function<Result<std::string_view, TokenizeError>(
+    const LexerContext&, const std::string_view)>;
 
 struct LexerMatcher {
   TokenKind kind;
   OnMatch on_match;
+  std::optional<OnParse> on_parse{std::nullopt};
   bool skip{false};
 };
-
-enum class LexerNextError : int32_t {
-  kMatchFailed = 0,
-  kMatcherNotFound,
-};
-
-auto operator<<(std::ostream& os, const LexerNextError error) -> std::ostream&;
 
 class Lexer {
 public:
@@ -82,7 +127,7 @@ public:
   Lexer(const Lexer&) = delete;
   auto operator=(const Lexer&) -> Lexer& = delete;
 
-  auto Next() noexcept -> Result<Token, LexerNextError>;
+  auto Next() noexcept -> Result<Token, TokenizeError>;
 
 private:
   LexerContext context_;

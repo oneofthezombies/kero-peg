@@ -15,18 +15,16 @@ auto GrammarParser::Parse() noexcept -> Result<void, Error> {
   std::unordered_map<Identifier, Expression> rule_map;
   while (true) {
     auto next_res = lexer.Next();
-    if (next_res.IsError()) {
-      const auto error = next_res.Error();
+    if (next_res.IsErr()) {
+      const auto error = next_res.Err();
       std::cout << "error: " << *error << std::endl;
       break;
     }
 
     const auto token = next_res.Ok();
-    const auto kind = token->kind;
-    const auto value = token->value;
-    std::cout << "kind: " << kind << " value: " << value << std::endl;
+    std::cout << *token << std::endl;
 
-    switch (kind) {
+    switch (token->kind) {
     case TokenKind::kEndOfFile:
       return {};
     default:
