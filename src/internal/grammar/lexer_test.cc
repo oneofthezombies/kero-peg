@@ -469,3 +469,117 @@ TEST(TokenizeErrorTest, Print) {
   EXPECT_EQ(oss.str(), "TokenizeError{code=MatchFailed, location=Location{"
                        "position=1, line=2, column=3}}");
 }
+
+TEST(LexerTest, Sample) {
+  // Expr    ← Sum
+  // Sum     ← Product (('+' / '-') Product)*
+  // Product ← Power (('*' / '/') Power)*
+  // Power   ← Value ('^' Power)?
+  // Value   ← [0-9]+ / '(' Expr ')'
+  auto lexer{kero::peg::grammar::Lexer{"Expr <- Sum\n"
+                                       "Sum <- Product (('+' / '-') Product)*\n"
+                                       "Product <- Power (('*' / '/') Power)*\n"
+                                       "Power <- Value ('^' Power)?\n"
+                                       "Value <- [0-9]+ / '(' Expr ')'"}};
+  std::stringstream ss;
+  while (true) {
+    auto next_res = lexer.Next();
+    if (next_res.IsErr()) {
+      break;
+    }
+    const auto token = *next_res.Ok();
+    ss << token.kind << " " << token.value << std::endl;
+    if (token.kind == kero::peg::grammar::TokenKind::kEndOfFile) {
+      break;
+    }
+  }
+  // NonTerminal Expr
+  // LeftArrow <-
+  // NonTerminal Sum
+  // NonTerminal Sum
+  // LeftArrow <-
+  // NonTerminal Product
+  // LeftParenthesis (
+  // LeftParenthesis (
+  // QuotedTerminal +
+  // Slash /
+  // QuotedTerminal -
+  // RightParenthesis )
+  // NonTerminal Product
+  // RightParenthesis )
+  // Asterisk *
+  // NonTerminal Product
+  // LeftArrow <-
+  // NonTerminal Power
+  // LeftParenthesis (
+  // LeftParenthesis (
+  // QuotedTerminal *
+  // Slash /
+  // QuotedTerminal /
+  // RightParenthesis )
+  // NonTerminal Power
+  // RightParenthesis )
+  // Asterisk *
+  // NonTerminal Power
+  // LeftArrow <-
+  // NonTerminal Value
+  // LeftParenthesis (
+  // QuotedTerminal ^
+  // NonTerminal Power
+  // RightParenthesis )
+  // QuestionMark ?
+  // NonTerminal Value
+  // LeftArrow <-
+  // BracketedTerminal 0-9
+  // Plus +
+  // Slash /
+  // QuotedTerminal (
+  // NonTerminal Expr
+  // QuotedTerminal )
+  // EndOfFile
+  //
+  EXPECT_EQ(ss.str(), "NonTerminal Expr\n"
+                      "LeftArrow <-\n"
+                      "NonTerminal Sum\n"
+                      "NonTerminal Sum\n"
+                      "LeftArrow <-\n"
+                      "NonTerminal Product\n"
+                      "LeftParenthesis (\n"
+                      "LeftParenthesis (\n"
+                      "QuotedTerminal +\n"
+                      "Slash /\n"
+                      "QuotedTerminal -\n"
+                      "RightParenthesis )\n"
+                      "NonTerminal Product\n"
+                      "RightParenthesis )\n"
+                      "Asterisk *\n"
+                      "NonTerminal Product\n"
+                      "LeftArrow <-\n"
+                      "NonTerminal Power\n"
+                      "LeftParenthesis (\n"
+                      "LeftParenthesis (\n"
+                      "QuotedTerminal *\n"
+                      "Slash /\n"
+                      "QuotedTerminal /\n"
+                      "RightParenthesis )\n"
+                      "NonTerminal Power\n"
+                      "RightParenthesis )\n"
+                      "Asterisk *\n"
+                      "NonTerminal Power\n"
+                      "LeftArrow <-\n"
+                      "NonTerminal Value\n"
+                      "LeftParenthesis (\n"
+                      "QuotedTerminal ^\n"
+                      "NonTerminal Power\n"
+                      "RightParenthesis )\n"
+                      "QuestionMark ?\n"
+                      "NonTerminal Value\n"
+                      "LeftArrow <-\n"
+                      "BracketedTerminal 0-9\n"
+                      "Plus +\n"
+                      "Slash /\n"
+                      "QuotedTerminal (\n"
+                      "NonTerminal Expr\n"
+                      "QuotedTerminal )\n"
+                      "EndOfFile \n");
+}
