@@ -46,7 +46,7 @@ private:
 };
 
 template <typename T, typename E>
-auto operator<<(std::ostream& os, const Result<T, E>& result) -> std::ostream& {
+auto operator<<(std::ostream& os, Result<T, E>& result) -> std::ostream& {
   os << "Result{";
   if (result.IsOk()) {
     os << "Ok{";
@@ -91,8 +91,7 @@ private:
 };
 
 template <typename E>
-auto operator<<(std::ostream& os, const Result<void, E>& result)
-    -> std::ostream& {
+auto operator<<(std::ostream& os, Result<void, E>& result) -> std::ostream& {
   os << "Result{";
   if (result.IsOk()) {
     os << "Ok{";

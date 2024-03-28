@@ -439,3 +439,33 @@ TEST(LexerTest, BracketedTerminalAlphabetNumber) {
   NextOk(lexer, kero::peg::grammar::TokenKind::kBracketedTerminal, "a-zA-Z0-9");
   NextOk(lexer, kero::peg::grammar::TokenKind::kEndOfFile, "");
 }
+
+TEST(LocationTest, Print) {
+  auto location{kero::peg::grammar::Location{1, 2, 3}};
+  std::ostringstream oss;
+  oss << location;
+  EXPECT_EQ(oss.str(), "Location{position=1, line=2, column=3}");
+}
+
+TEST(TokenTest, Print) {
+  auto token{kero::peg::grammar::Token{
+      kero::peg::grammar::Location{1, 2, 3},
+      kero::peg::grammar::Location{4, 5, 6}, "original", "value",
+      kero::peg::grammar::TokenKind::kNonTerminal}};
+  std::ostringstream oss;
+  oss << token;
+  EXPECT_EQ(oss.str(),
+            "Token{kind=NonTerminal, value=value, original=original, "
+            "original_start=Location{position=1, line=2, column=3}, "
+            "original_end=Location{position=4, line=5, column=6}}");
+}
+
+TEST(TokenizeErrorTest, Print) {
+  auto error{kero::peg::grammar::TokenizeError{
+      kero::peg::grammar::TokenizeErrorCode::kMatchFailed,
+      kero::peg::grammar::Location{1, 2, 3}}};
+  std::ostringstream oss;
+  oss << error;
+  EXPECT_EQ(oss.str(), "TokenizeError{code=MatchFailed, location=Location{"
+                       "position=1, line=2, column=3}}");
+}
