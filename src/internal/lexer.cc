@@ -10,18 +10,25 @@ auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
   switch (kind) {
   case TokenKind::kEndOfFile:
     os << "EndOfFile";
+    break;
   case TokenKind::kWhitespace:
     os << "Whitespace";
+    break;
   case TokenKind::kNewLine:
     os << "NewLine";
+    break;
   case TokenKind::kIdentifier:
     os << "Identifier";
+    break;
   case TokenKind::kLeftArrow:
     os << "LeftArrow";
+    break;
   case TokenKind::kExpression:
     os << "Expression";
+    break;
   case TokenKind::kTerminal:
     os << "Terminal";
+    break;
   }
 
   return os;
@@ -31,8 +38,10 @@ auto operator<<(std::ostream& os, const LexerNextError error) -> std::ostream& {
   switch (error) {
   case LexerNextError::kMatchFailed:
     os << "MatchFailed";
+    break;
   case LexerNextError::kMatcherNotFound:
     os << "MatcherNotFound";
+    break;
   }
 
   return os;
