@@ -1,11 +1,38 @@
 #include "lexer.h"
+
 #include <cctype>
+#include <ostream>
 
 namespace kero {
 namespace peg {
 
-Span::Span(const size_t position, const std::string_view value) noexcept
-    : position(position), value(value) {}
+auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
+  switch (kind) {
+  case TokenKind::kEndOfFile:
+    return os << "EndOfFile";
+  case TokenKind::kWhitespace:
+    return os << "Whitespace";
+  case TokenKind::kNewLine:
+    return os << "NewLine";
+  case TokenKind::kIdentifier:
+    return os << "Identifier";
+  case TokenKind::kLeftArrow:
+    return os << "LeftArrow";
+  case TokenKind::kExpression:
+    return os << "Expression";
+  case TokenKind::kTerminal:
+    return os << "Terminal";
+  }
+}
+
+auto operator<<(std::ostream& os, const LexerNextError error) -> std::ostream& {
+  switch (error) {
+  case LexerNextError::kMatchFailed:
+    return os << "MatchFailed";
+  case LexerNextError::kMatcherNotFound:
+    return os << "MatcherNotFound";
+  }
+}
 
 LexerContext::LexerContext(const std::string_view source) noexcept
     : source_(source) {}
@@ -68,41 +95,44 @@ auto LexerContext::Consume(const size_t size) noexcept -> bool {
 
 Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
   matchers_ = {
-      Matcher{TokenKind::kEndOfFile,
-              [](const LexerContext& ctx) -> std::optional<std::string_view> {
-                if (const auto ch = ctx.Peek()) {
-                  return std::nullopt;
-                }
+      LexerMatcher{
+          TokenKind::kEndOfFile,
+          [](const LexerContext& ctx) -> std::optional<std::string_view> {
+            if (const auto ch = ctx.Peek()) {
+              return std::nullopt;
+            }
 
-                return "";
-              }},
-      Matcher{TokenKind::kWhitespace,
-              [](const LexerContext& ctx) -> std::optional<std::string_view> {
-                if (const auto ch = ctx.Peek()) {
-                  if (const auto space = ctx.Match(" ")) {
-                    return space;
-                  } else if (const auto tab = ctx.Match("\t")) {
-                    return tab;
-                  }
-                }
+            return "";
+          }},
+      LexerMatcher{
+          TokenKind::kWhitespace,
+          [](const LexerContext& ctx) -> std::optional<std::string_view> {
+            if (const auto ch = ctx.Peek()) {
+              if (const auto space = ctx.Match(" ")) {
+                return space;
+              } else if (const auto tab = ctx.Match("\t")) {
+                return tab;
+              }
+            }
 
-                return std::nullopt;
-              },
-              true},
-      Matcher{TokenKind::kNewLine,
-              [](const LexerContext& ctx) -> std::optional<std::string_view> {
-                if (const auto ch = ctx.Peek()) {
-                  if (const auto unix_ln = ctx.Match("\n")) {
-                    return unix_ln;
-                  } else if (const auto windows_ln = ctx.Match("\r\n")) {
-                    return windows_ln;
-                  }
-                }
+            return std::nullopt;
+          },
+          true},
+      LexerMatcher{
+          TokenKind::kNewLine,
+          [](const LexerContext& ctx) -> std::optional<std::string_view> {
+            if (const auto ch = ctx.Peek()) {
+              if (const auto unix_ln = ctx.Match("\n")) {
+                return unix_ln;
+              } else if (const auto windows_ln = ctx.Match("\r\n")) {
+                return windows_ln;
+              }
+            }
 
-                return std::nullopt;
-              },
-              true},
-      Matcher{
+            return std::nullopt;
+          },
+          true},
+      LexerMatcher{
           TokenKind::kIdentifier,
           [](const LexerContext& ctx) -> std::optional<std::string_view> {
             if (const auto ch = ctx.Peek()) {
@@ -120,66 +150,68 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
 
             return std::nullopt;
           }},
-      Matcher{TokenKind::kLeftArrow,
-              [](const LexerContext& ctx) -> std::optional<std::string_view> {
-                if (const auto ch = ctx.Peek()) {
-                  if (const auto left_arrow = ctx.Match("<-")) {
-                    return left_arrow;
-                  }
+      LexerMatcher{
+          TokenKind::kLeftArrow,
+          [](const LexerContext& ctx) -> std::optional<std::string_view> {
+            if (const auto ch = ctx.Peek()) {
+              if (const auto left_arrow = ctx.Match("<-")) {
+                return left_arrow;
+              }
+            }
+
+            return std::nullopt;
+          }},
+      LexerMatcher{
+          TokenKind::kExpression,
+          [](const LexerContext& ctx) -> std::optional<std::string_view> {
+            if (const auto ch = ctx.Peek()) {
+              const auto source = ctx.Source();
+              for (size_t i = ctx.Position(); i < source.size(); ++i) {
+                const auto current = source[i];
+                if (current == '\n' || current == '\r') {
+                  return source.substr(ctx.Position(), i - ctx.Position());
                 }
+              }
+            }
 
-                return std::nullopt;
-              }},
-      Matcher{TokenKind::kExpression,
-              [](const LexerContext& ctx) -> std::optional<std::string_view> {
-                if (const auto ch = ctx.Peek()) {
-                  const auto source = ctx.Source();
-                  for (size_t i = ctx.Position(); i < source.size(); ++i) {
-                    const auto current = source[i];
-                    if (current == '\n' || current == '\r') {
-                      return source.substr(ctx.Position(), i - ctx.Position());
-                    }
-                  }
+            return std::nullopt;
+          }},
+      LexerMatcher{
+          TokenKind::kTerminal,
+          [](const LexerContext& ctx) -> std::optional<std::string_view> {
+            const auto tokenize =
+                [](const LexerContext& ctx,
+                   const char quote) -> std::optional<std::string_view> {
+              const auto source = ctx.Source();
+              for (size_t i = ctx.Position() + 1; i < source.size(); ++i) {
+                const auto current = source[i];
+                if (current == quote) {
+                  return source.substr(ctx.Position(), i - ctx.Position() + 1);
                 }
+              }
 
-                return std::nullopt;
-              }},
-      Matcher{TokenKind::kTerminal,
-              [](const LexerContext& ctx) -> std::optional<std::string_view> {
-                const auto tokenize =
-                    [](const LexerContext& ctx,
-                       const char quote) -> std::optional<std::string_view> {
-                  const auto source = ctx.Source();
-                  for (size_t i = ctx.Position() + 1; i < source.size(); ++i) {
-                    const auto current = source[i];
-                    if (current == quote) {
-                      return source.substr(ctx.Position(),
-                                           i - ctx.Position() + 1);
-                    }
-                  }
+              return std::nullopt;
+            };
 
-                  return std::nullopt;
-                };
+            if (const auto ch = ctx.Peek()) {
+              if (*ch == '"') {
+                return tokenize(ctx, '"');
+              } else if (*ch == '\'') {
+                return tokenize(ctx, '\'');
+              }
+            }
 
-                if (const auto ch = ctx.Peek()) {
-                  if (*ch == '"') {
-                    return tokenize(ctx, '"');
-                  } else if (*ch == '\'') {
-                    return tokenize(ctx, '\'');
-                  }
-                }
-
-                return std::nullopt;
-              }}};
+            return std::nullopt;
+          }}};
 };
 
-auto Lexer::Next() noexcept -> std::optional<Token> {
+auto Lexer::Next() noexcept -> Result<Token, LexerNextError> {
   while (true) {
     std::optional<size_t> matcher_i = std::nullopt;
     std::optional<std::string_view> matched = std::nullopt;
     for (size_t i{}; i < matchers_.size(); ++i) {
       const auto& matcher = matchers_[i];
-      if (const auto value = matcher.match(context_)) {
+      if (const auto value = matcher.on_match(context_)) {
         matched = value;
         matcher_i = i;
         break;
@@ -187,15 +219,13 @@ auto Lexer::Next() noexcept -> std::optional<Token> {
     }
 
     if (!matched) {
-      // TODO: Error handling
-      return std::nullopt;
+      return LexerNextError::kMatchFailed;
     }
 
     context_.Consume(matched->size());
 
     if (!matcher_i) {
-      // TODO: Error handling
-      return std::nullopt;
+      return LexerNextError::kMatcherNotFound;
     }
 
     const auto& matcher = matchers_[*matcher_i];

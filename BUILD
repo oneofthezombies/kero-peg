@@ -20,7 +20,10 @@ cc_library(
 
 cc_test(
     name = "kero_peg_test",
-    srcs = ["src/kero_peg_test.cc"],
+    srcs = [
+        "src/internal/lexer_test.cc",
+        "src/kero_peg_test.cc",
+    ],
     copts = ["-std=c++20"],
     deps = [
         ":kero_peg",

@@ -5,15 +5,10 @@
 #include <optional>
 #include <string_view>
 
+#include "core.h"
+
 namespace kero {
 namespace peg {
-
-struct Span {
-  size_t position;
-  std::string_view value;
-
-  Span(const size_t position, const std::string_view value) noexcept;
-};
 
 enum class TokenKind {
   kEndOfFile = 0,
@@ -24,6 +19,8 @@ enum class TokenKind {
   kExpression,
   kTerminal,
 };
+
+auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream&;
 
 struct Token {
   TokenKind kind;
@@ -50,14 +47,21 @@ private:
   size_t column_{1};
 };
 
-using Match =
+using OnMatch =
     std::function<std::optional<std::string_view>(const LexerContext&)>;
 
-struct Matcher {
+struct LexerMatcher {
   TokenKind kind;
-  Match match;
+  OnMatch on_match;
   bool skip{false};
 };
+
+enum class LexerNextError : int32_t {
+  kMatchFailed = 0,
+  kMatcherNotFound,
+};
+
+auto operator<<(std::ostream& os, const LexerNextError error) -> std::ostream&;
 
 class Lexer {
 public:
@@ -69,11 +73,11 @@ public:
   Lexer(const Lexer&) = delete;
   auto operator=(const Lexer&) -> Lexer& = delete;
 
-  auto Next() noexcept -> std::optional<Token>;
+  auto Next() noexcept -> Result<Token, LexerNextError>;
 
 private:
   LexerContext context_;
-  std::vector<Matcher> matchers_;
+  std::vector<LexerMatcher> matchers_;
 };
 
 } // namespace peg
