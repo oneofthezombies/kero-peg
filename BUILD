@@ -2,12 +2,8 @@ cc_library(
     name = "kero_peg",
     srcs = [
         "src/internal/core.h",
-        "src/internal/grammar_context.cc",
-        "src/internal/grammar_context.h",
-        "src/internal/grammar_parser.cc",
-        "src/internal/grammar_parser.h",
-        "src/internal/lexer.cc",
-        "src/internal/lexer.h",
+        "src/internal/grammar/lexer.cc",
+        "src/internal/grammar/lexer.h",
     ],
     hdrs = [
         "src/kero_peg.h",
@@ -21,7 +17,8 @@ cc_library(
 cc_test(
     name = "kero_peg_test",
     srcs = [
-        "src/internal/lexer_test.cc",
+        "src/internal/core_test.cc",
+        "src/internal/grammar/lexer_test.cc",
         "src/kero_peg_test.cc",
     ],
     copts = [

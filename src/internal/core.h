@@ -1,19 +1,12 @@
-#ifndef KERO_PEG_CORE_H
-#define KERO_PEG_CORE_H
+#ifndef KERO_PEG_INTERNAL_CORE_H
+#define KERO_PEG_INTERNAL_CORE_H
 
-#include <cstdint>
 #include <optional>
 #include <ostream>
 #include <variant>
 
 namespace kero {
 namespace peg {
-
-enum class ErrorCode : int32_t {
-  kUnknown = 0,
-  kEndOfGrammarSource,
-  kTokenNotFound,
-};
 
 template <typename T, typename E> class Result {
 public:
@@ -117,4 +110,4 @@ auto operator<<(std::ostream& os, const Result<void, E>& result)
 } // namespace peg
 } // namespace kero
 
-#endif // KERO_PEG_CORE_H
+#endif // KERO_PEG_INTERNAL_CORE_H

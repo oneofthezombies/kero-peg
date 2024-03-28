@@ -1,14 +1,15 @@
-#ifndef KERO_PEG_INTERNAL_LEXER_H
-#define KERO_PEG_INTERNAL_LEXER_H
+#ifndef KERO_PEG_INTERNAL_GRAMMAR_LEXER_H
+#define KERO_PEG_INTERNAL_GRAMMAR_LEXER_H
 
 #include <functional>
 #include <optional>
 #include <string_view>
 
-#include "core.h"
+#include "../core.h"
 
 namespace kero {
 namespace peg {
+namespace grammar {
 
 enum class TokenKind {
   kEndOfFile = 0,
@@ -134,7 +135,8 @@ private:
   std::vector<LexerMatcher> matchers_;
 };
 
+} // namespace grammar
 } // namespace peg
 } // namespace kero
 
-#endif // KERO_PEG_INTERNAL_LEXER_H
+#endif // KERO_PEG_INTERNAL_GRAMMAR_LEXER_H

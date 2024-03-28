@@ -3,10 +3,11 @@
 #include <cctype>
 #include <ostream>
 
-#include "core.h"
+#include "../core.h"
 
 namespace kero {
 namespace peg {
+namespace grammar {
 
 auto operator<<(std::ostream& os, const TokenKind kind) noexcept
     -> std::ostream& {
@@ -183,8 +184,8 @@ auto LexerContext::Line() const noexcept -> size_t { return line_; }
 
 auto LexerContext::Column() const noexcept -> size_t { return column_; }
 
-auto LexerContext::Location() const noexcept -> kero::peg::Location {
-  return kero::peg::Location{position_, line_, column_};
+auto LexerContext::Location() const noexcept -> kero::peg::grammar::Location {
+  return kero::peg::grammar::Location{position_, line_, column_};
 }
 
 auto LexerContext::Match(const std::string_view expected) const noexcept
@@ -504,5 +505,6 @@ auto Lexer::Next() noexcept -> Result<Token, TokenizeError> {
   }
 }
 
+} // namespace grammar
 } // namespace peg
 } // namespace kero
