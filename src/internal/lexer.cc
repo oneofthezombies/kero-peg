@@ -9,29 +9,33 @@ namespace peg {
 auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
   switch (kind) {
   case TokenKind::kEndOfFile:
-    return os << "EndOfFile";
+    os << "EndOfFile";
   case TokenKind::kWhitespace:
-    return os << "Whitespace";
+    os << "Whitespace";
   case TokenKind::kNewLine:
-    return os << "NewLine";
+    os << "NewLine";
   case TokenKind::kIdentifier:
-    return os << "Identifier";
+    os << "Identifier";
   case TokenKind::kLeftArrow:
-    return os << "LeftArrow";
+    os << "LeftArrow";
   case TokenKind::kExpression:
-    return os << "Expression";
+    os << "Expression";
   case TokenKind::kTerminal:
-    return os << "Terminal";
+    os << "Terminal";
   }
+
+  return os;
 }
 
 auto operator<<(std::ostream& os, const LexerNextError error) -> std::ostream& {
   switch (error) {
   case LexerNextError::kMatchFailed:
-    return os << "MatchFailed";
+    os << "MatchFailed";
   case LexerNextError::kMatcherNotFound:
-    return os << "MatcherNotFound";
+    os << "MatcherNotFound";
   }
+
+  return os;
 }
 
 LexerContext::LexerContext(const std::string_view source) noexcept
