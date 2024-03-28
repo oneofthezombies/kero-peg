@@ -25,6 +25,28 @@ struct Node {
   NodeKind kind;
 };
 
+using RuleId = int32_t;
+
+class Symbol {
+public:
+  auto IsTerminal() const noexcept -> bool;
+  auto IsNonTerminal() const noexcept -> bool;
+
+  auto NonTerminal() const noexcept -> RuleId;
+};
+
+using Sequence = std::vector<Symbol>;
+
+class Rule {
+public:
+  auto Choices() const noexcept -> const std::vector<Sequence>&;
+
+private:
+  std::vector<Sequence> choices_;
+};
+
+enum class ParseErrorCode : int32_t {};
+
 class Parser {
 public:
   Parser(const std::string_view source) noexcept;
@@ -35,7 +57,7 @@ public:
   Parser(const Parser&) = delete;
   auto operator=(const Parser&) -> Parser& = delete;
 
-  auto Parse() noexcept -> std::optional<Node>;
+  auto Parse() noexcept -> void;
 
 private:
   Lexer lexer_;
