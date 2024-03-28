@@ -25,6 +25,7 @@ enum class TokenKind {
   kAmpersand,        // &
   kExclamationMark,  // !
   kSlash,            // /
+  kDot,              // .
   kTerminal,         // e.g. 'a' or "a"
   kNonTerminal,      // e.g. A
 };

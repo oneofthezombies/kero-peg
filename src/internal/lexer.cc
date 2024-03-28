@@ -56,6 +56,9 @@ auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
   case TokenKind::kSlash:
     os << "Slash";
     break;
+  case TokenKind::kDot:
+    os << "Dot";
+    break;
   }
 
   return os;
@@ -204,6 +207,10 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
       LexerMatcher{
           TokenKind::kSlash,
           SimpleOnMatch({"/"}),
+      },
+      LexerMatcher{
+          TokenKind::kDot,
+          SimpleOnMatch({"."}),
       },
       LexerMatcher{
           TokenKind::kNonTerminal,

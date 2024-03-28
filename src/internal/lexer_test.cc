@@ -323,3 +323,9 @@ TEST(LexerTest, Slash) {
   NextOk(lexer, kero::peg::TokenKind::kSlash, "/");
   NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
 }
+
+TEST(LexerTest, Dot) {
+  auto lexer{kero::peg::Lexer{"."}};
+  NextOk(lexer, kero::peg::TokenKind::kDot, ".");
+  NextOk(lexer, kero::peg::TokenKind::kEndOfFile, "");
+}
