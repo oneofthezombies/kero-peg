@@ -17,17 +17,14 @@ auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
   case TokenKind::kNewLine:
     os << "NewLine";
     break;
-  case TokenKind::kIdentifier:
-    os << "Identifier";
-    break;
   case TokenKind::kLeftArrow:
     os << "LeftArrow";
     break;
-  case TokenKind::kExpression:
-    os << "Expression";
-    break;
   case TokenKind::kTerminal:
     os << "Terminal";
+    break;
+  case TokenKind::kNonTerminal:
+    os << "NonTerminal";
     break;
   }
 
@@ -146,18 +143,19 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
           },
           true},
       LexerMatcher{
-          TokenKind::kIdentifier,
+          TokenKind::kNonTerminal,
           [](const LexerContext& ctx) -> std::optional<std::string_view> {
             if (const auto ch = ctx.Peek()) {
               if (std::isalpha(*ch)) {
                 const auto source = ctx.Source();
-                for (size_t i = ctx.Position() + 1; i < source.size(); ++i) {
+                for (size_t i = ctx.Position(); i < source.size(); ++i) {
                   const auto current = source[i];
-                  const auto valid = std::isalnum(current) || current == '_';
-                  if (!valid) {
+                  if (!std::isalnum(current) && current != '_') {
                     return source.substr(ctx.Position(), i - ctx.Position());
                   }
                 }
+
+                return source.substr(ctx.Position());
               }
             }
 
@@ -169,21 +167,6 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
             if (const auto ch = ctx.Peek()) {
               if (const auto left_arrow = ctx.Match("<-")) {
                 return left_arrow;
-              }
-            }
-
-            return std::nullopt;
-          }},
-      LexerMatcher{
-          TokenKind::kExpression,
-          [](const LexerContext& ctx) -> std::optional<std::string_view> {
-            if (const auto ch = ctx.Peek()) {
-              const auto source = ctx.Source();
-              for (size_t i = ctx.Position(); i < source.size(); ++i) {
-                const auto current = source[i];
-                if (current == '\n' || current == '\r') {
-                  return source.substr(ctx.Position(), i - ctx.Position());
-                }
               }
             }
 

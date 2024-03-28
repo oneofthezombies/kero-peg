@@ -14,10 +14,9 @@ enum class TokenKind {
   kEndOfFile = 0,
   kWhitespace,
   kNewLine,
-  kIdentifier,
   kLeftArrow,
-  kExpression,
   kTerminal,
+  kNonTerminal,
 };
 
 auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream&;
