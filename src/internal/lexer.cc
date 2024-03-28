@@ -26,6 +26,36 @@ auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream& {
   case TokenKind::kNonTerminal:
     os << "NonTerminal";
     break;
+  case TokenKind::kLeftParenthesis:
+    os << "LeftParenthesis";
+    break;
+  case TokenKind::kRightParenthesis:
+    os << "RightParenthesis";
+    break;
+  case TokenKind::kLeftBracket:
+    os << "LeftBracket";
+    break;
+  case TokenKind::kRightBracket:
+    os << "RightBracket";
+    break;
+  case TokenKind::kAsterisk:
+    os << "Asterisk";
+    break;
+  case TokenKind::kPlus:
+    os << "Plus";
+    break;
+  case TokenKind::kQuestionMark:
+    os << "QuestionMark";
+    break;
+  case TokenKind::kAmpersand:
+    os << "Ampersand";
+    break;
+  case TokenKind::kExclamationMark:
+    os << "ExclamationMark";
+    break;
+  case TokenKind::kSlash:
+    os << "Slash";
+    break;
   }
 
   return os;
@@ -103,6 +133,21 @@ auto LexerContext::Consume(const size_t size) noexcept -> bool {
   return true;
 }
 
+auto SimpleOnMatch(std::vector<std::string_view>&& matches) -> OnMatch {
+  return [matches = std::move(matches)](
+             const LexerContext& ctx) -> std::optional<std::string_view> {
+    if (const auto ch = ctx.Peek()) {
+      for (const auto& match : matches) {
+        if (const auto value = ctx.Match(match)) {
+          return value;
+        }
+      }
+    }
+
+    return std::nullopt;
+  };
+}
+
 Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
   matchers_ = {
       LexerMatcher{
@@ -114,34 +159,52 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
 
             return "";
           }},
+      LexerMatcher{TokenKind::kWhitespace, SimpleOnMatch({" ", "\t"}), true},
+      LexerMatcher{TokenKind::kNewLine, SimpleOnMatch({"\n", "\r\n"}), true},
       LexerMatcher{
-          TokenKind::kWhitespace,
-          [](const LexerContext& ctx) -> std::optional<std::string_view> {
-            if (const auto ch = ctx.Peek()) {
-              if (const auto space = ctx.Match(" ")) {
-                return space;
-              } else if (const auto tab = ctx.Match("\t")) {
-                return tab;
-              }
-            }
-
-            return std::nullopt;
-          },
-          true},
+          TokenKind::kLeftArrow,
+          SimpleOnMatch({"<-"}),
+      },
       LexerMatcher{
-          TokenKind::kNewLine,
-          [](const LexerContext& ctx) -> std::optional<std::string_view> {
-            if (const auto ch = ctx.Peek()) {
-              if (const auto unix_ln = ctx.Match("\n")) {
-                return unix_ln;
-              } else if (const auto windows_ln = ctx.Match("\r\n")) {
-                return windows_ln;
-              }
-            }
-
-            return std::nullopt;
-          },
-          true},
+          TokenKind::kLeftParenthesis,
+          SimpleOnMatch({"("}),
+      },
+      LexerMatcher{
+          TokenKind::kRightParenthesis,
+          SimpleOnMatch({")"}),
+      },
+      LexerMatcher{
+          TokenKind::kLeftBracket,
+          SimpleOnMatch({"["}),
+      },
+      LexerMatcher{
+          TokenKind::kRightBracket,
+          SimpleOnMatch({"]"}),
+      },
+      LexerMatcher{
+          TokenKind::kAsterisk,
+          SimpleOnMatch({"*"}),
+      },
+      LexerMatcher{
+          TokenKind::kPlus,
+          SimpleOnMatch({"+"}),
+      },
+      LexerMatcher{
+          TokenKind::kQuestionMark,
+          SimpleOnMatch({"?"}),
+      },
+      LexerMatcher{
+          TokenKind::kAmpersand,
+          SimpleOnMatch({"&"}),
+      },
+      LexerMatcher{
+          TokenKind::kExclamationMark,
+          SimpleOnMatch({"!"}),
+      },
+      LexerMatcher{
+          TokenKind::kSlash,
+          SimpleOnMatch({"/"}),
+      },
       LexerMatcher{
           TokenKind::kNonTerminal,
           [](const LexerContext& ctx) -> std::optional<std::string_view> {
@@ -156,17 +219,6 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
                 }
 
                 return source.substr(ctx.Position());
-              }
-            }
-
-            return std::nullopt;
-          }},
-      LexerMatcher{
-          TokenKind::kLeftArrow,
-          [](const LexerContext& ctx) -> std::optional<std::string_view> {
-            if (const auto ch = ctx.Peek()) {
-              if (const auto left_arrow = ctx.Match("<-")) {
-                return left_arrow;
               }
             }
 
@@ -198,7 +250,10 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
             }
 
             return std::nullopt;
-          }}};
+          }},
+
+      // NOTE: This is a comment for line alignment when using the formatter.
+  }; // matchers_
 };
 
 auto Lexer::Next() noexcept -> Result<Token, LexerNextError> {

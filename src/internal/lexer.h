@@ -12,11 +12,21 @@ namespace peg {
 
 enum class TokenKind {
   kEndOfFile = 0,
-  kWhitespace,
-  kNewLine,
-  kLeftArrow,
-  kTerminal,
-  kNonTerminal,
+  kWhitespace,       // ' ' or \t
+  kNewLine,          // \n or \r\n
+  kLeftArrow,        // <-
+  kTerminal,         // e.g. 'a' or "a"
+  kNonTerminal,      // e.g. A
+  kLeftParenthesis,  // (
+  kRightParenthesis, // )
+  kLeftBracket,      // [
+  kRightBracket,     // ]
+  kAsterisk,         // *
+  kPlus,             // +
+  kQuestionMark,     // ?
+  kAmpersand,        // &
+  kExclamationMark,  // !
+  kSlash,            // /
 };
 
 auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream&;
