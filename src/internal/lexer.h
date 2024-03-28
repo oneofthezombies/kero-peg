@@ -15,8 +15,6 @@ enum class TokenKind {
   kWhitespace,       // ' ' or \t
   kNewLine,          // \n or \r\n
   kLeftArrow,        // <-
-  kTerminal,         // e.g. 'a' or "a"
-  kNonTerminal,      // e.g. A
   kLeftParenthesis,  // (
   kRightParenthesis, // )
   kLeftBracket,      // [
@@ -27,6 +25,8 @@ enum class TokenKind {
   kAmpersand,        // &
   kExclamationMark,  // !
   kSlash,            // /
+  kTerminal,         // e.g. 'a' or "a"
+  kNonTerminal,      // e.g. A
 };
 
 auto operator<<(std::ostream& os, const TokenKind kind) -> std::ostream&;
