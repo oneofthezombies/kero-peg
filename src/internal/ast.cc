@@ -37,48 +37,65 @@ auto Parser::NextToken() noexcept -> Result<void, Error> {
 }
 
 auto Parser::ParseRuleSet() noexcept -> Result<NodePtr, Error> {
-  auto rule_set{std::make_unique<RuleSet>()};
+  if (auto res = NextToken(); res.IsErr()) {
+    return Result<NodePtr, Error>{std::move(*res.Err())};
+  }
+
+  auto rules{std::vector<NodePtr>{}};
   while (true) {
     auto res = ParseRule();
     if (res.IsErr()) {
       return res;
     }
-    rule_set->AddRule(*res.Ok());
+    rules.push_back(std::move(*res.Ok()));
+
+    if (!lookahead_) {
+      return Result<NodePtr, Error>{Error{ErrorCode::kLookaheadNotExist}};
+    }
+
+    if (lookahead_->kind == TokenKind::kEndOfInput) {
+      break;
+    }
   }
-  return Result<NodePtr, Error>{std::move(rule_set)};
+
+  return Result<NodePtr, Error>{std::make_unique<RuleSet>(std::move(rules))};
 }
 
 auto Parser::ParseRule() noexcept -> Result<NodePtr, Error> {
-  if (auto res = NextToken(); res.IsErr()) {
-    return Result<NodePtr, Error>{std::move(*res.Err())};
-  }
-  if (auto res = ParseNonTerminal(); res.IsErr()) {
-    return res;
+  if (auto non_terminal_res = ParseNonTerminal(); non_terminal_res.IsErr()) {
+    return non_terminal_res;
   } else {
-    auto non_terminal = *res.Ok();
+    auto non_terminal = std::move(*non_terminal_res.Ok());
     if (auto res = ConsumeLeftArrowToken(); res.IsErr()) {
       return Result<NodePtr, Error>{std::move(*res.Err())};
     }
-    if (auto res = ParseExpression(); res.IsErr()) {
-      return Result<NodePtr, Error>{std::move(*res.Err())};
+
+    if (auto expr_res = ParseOrderedChoice(); expr_res.IsErr()) {
+      return expr_res;
+    } else {
+      return Result<NodePtr, Error>{std::make_unique<Rule>(
+          std::move(non_terminal), std::move(*expr_res.Ok()))};
     }
-    return Result<NodePtr, Error>{
-        std::make_unique<Rule>(std::move(non_terminal), std::move(*res.Ok()))};
   }
 }
 
 auto Parser::ParseNonTerminal() noexcept -> Result<NodePtr, Error> {
-  if (auto res = lexer_.Next(); res.IsErr()) {
-    return Result<NodePtr, Error>{Error{*res.Err()}};
-  } else {
-    auto token = *res.Ok();
-    if (token.kind != TokenKind::kNonTerminal) {
-      return Result<NodePtr, Error>{
-          Error{std::move(token), ErrorCode::kTokenNotNonTerminal}};
-    }
-    return Result<NodePtr, Error>{
-        std::make_unique<NonTerminal>(std::move(token))};
+  if (!lookahead_) {
+    return Result<NodePtr, Error>{Error{ErrorCode::kLookaheadNotExist}};
   }
+
+  if (lookahead_->kind != TokenKind::kNonTerminal) {
+    return Result<NodePtr, Error>{
+        Error{std::move(*lookahead_), ErrorCode::kTokenNotNonTerminal}};
+  }
+
+  auto non_terminal = std::move(*lookahead_);
+  if (auto res = NextToken(); res.IsErr()) {
+    return Result<NodePtr, Error>{std::move(*res.Err())};
+  }
+
+  return Result<NodePtr, Error>{
+      std::make_unique<NonTerminal>(std::move(non_terminal))};
 }
 
 auto Parser::ConsumeLeftArrowToken() noexcept -> Result<void, Error> {
@@ -95,25 +112,33 @@ auto Parser::ConsumeLeftArrowToken() noexcept -> Result<void, Error> {
 }
 
 auto Parser::ParseExpression() noexcept -> Result<NodePtr, Error> {
-  if (auto res = lexer_.Next(); res.IsErr()) {
-    return Result<NodePtr, Error>{Error{*res.Err()}};
-  } else {
-    auto token = *res.Ok();
-    switch (token.kind) {
-    case TokenKind::kLeftParenthesis:
-      return ParseGroup();
-    case TokenKind::kAmpersand:
-      return ParseAndPredicate();
-    case TokenKind::kExclamationMark:
-      return ParseNotPredicate();
-    case TokenKind::kDot:
-      return ParseAnyCharacter();
-    case TokenKind::kNonTerminal:
-      return ParseNonTerminal();
-    case TokenKind::kQuotedTerminal:
-      return ParseQuotedTerminal();
-    case TokenKind::kBracketedTerminal:
-      return ParseBracketedTerminal();
+  if (!lookahead_) {
+    return Result<NodePtr, Error>{Error{ErrorCode::kLookaheadNotExist}};
+  }
+
+  auto expr_res = ParseSequence();
+  if (expr_res.IsErr()) {
+    return expr_res;
+  }
+
+  while (true) {
+    if (!lookahead_) {
+      return Result<NodePtr, Error>{Error{ErrorCode::kLookaheadNotExist}};
+    }
+
+    if (lookahead_->kind == TokenKind::kSlash) {
+      if (auto res = NextToken(); res.IsErr()) {
+        return Result<NodePtr, Error>{std::move(*res.Err())};
+      }
+
+      if (auto right_expr_res = ParseSequence(); right_expr_res.IsErr()) {
+        return right_expr_res;
+      }
+
+      expr_res = std::make_unique<OrderedChoice>(
+          std::move(*expr_res.Ok()), std::move(*right_expr_res.Ok()));
+    } else {
+      break;
     }
   }
 }
@@ -133,6 +158,60 @@ auto Parser::ParseGroup() noexcept -> Result<NodePtr, Error> {
       return Result<NodePtr, Error>{
           std::make_unique<Group>(std::move(*expr_res.Ok()))};
     }
+  }
+}
+
+auto Parser::ParseSequence() noexcept -> Result<NodePtr, Error> {
+  if (auto expr_res = ParseGroup(); expr_res.IsErr()) {
+    return expr_res;
+  } else {
+    while (true) {
+      if (!lookahead_) {
+        return Result<NodePtr, Error>{Error{ErrorCode::kLookaheadNotExist}};
+      }
+
+      if (IsExpressionNodeKind(lookahead_->kind)) {
+        if (auto right_expr_res = ParseGroup(); right_expr_res.IsErr()) {
+          return right_expr_res;
+        }
+
+        expr_res = std::make_unique<Sequence>(std::move(*expr_res.Ok()),
+                                              std::move(*right_expr_res.Ok()));
+      } else {
+        break;
+      }
+    }
+
+    return expr_res;
+  }
+}
+
+auto Parser::ParseOrderedChoice() noexcept -> Result<NodePtr, Error> {
+  if (auto expr_res = ParseSequence(); expr_res.IsErr()) {
+    return expr_res;
+  } else {
+    while (true) {
+      if (!lookahead_) {
+        return Result<NodePtr, Error>{Error{ErrorCode::kLookaheadNotExist}};
+      }
+
+      if (lookahead_->kind == TokenKind::kSlash) {
+        if (auto res = NextToken(); res.IsErr()) {
+          return Result<NodePtr, Error>{std::move(*res.Err())};
+        }
+
+        if (auto right_expr_res = ParseSequence(); right_expr_res.IsErr()) {
+          return right_expr_res;
+        } else {
+          expr_res = std::make_unique<OrderedChoice>(
+              std::move(*expr_res.Ok()), std::move(*right_expr_res.Ok()));
+        }
+      } else {
+        break;
+      }
+    }
+
+    return expr_res;
   }
 }
 

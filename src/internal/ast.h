@@ -16,22 +16,24 @@ namespace ast {
 
 enum class ErrorCode : int32_t {
   kTokenizeError = 0,
+  kLookaheadNotExist,
   kTokenNotNonTerminal,
   kTokenNotLeftArrow,
   kTokenNotRightParenthesis,
+  kTokenNotEndOfInput,
 };
 
-class Error {
-public:
-  Error(TokenizeError&& tokenize_error) noexcept
-      : var_{std::move(tokenize_error)},
-        error_code_{ErrorCode::kTokenizeError} {}
-  Error(Token&& token, const ErrorCode error_code) noexcept
-      : var_{token}, error_code_{error_code} {}
+struct Error {
+  std::variant<std::monostate, TokenizeError, Token> value;
+  ErrorCode error_code;
 
-private:
-  std::variant<TokenizeError, Token> var_;
-  ErrorCode error_code_;
+  Error(TokenizeError&& tokenize_error) noexcept
+      : value{std::move(tokenize_error)},
+        error_code{ErrorCode::kTokenizeError} {}
+  Error(Token&& token, const ErrorCode error_code) noexcept
+      : value{token}, error_code{error_code} {}
+  Error(const ErrorCode error_code) noexcept
+      : value{std::monostate{}}, error_code{error_code} {}
 };
 
 enum class NodeKind : int32_t {
@@ -63,14 +65,10 @@ using NodePtr = std::unique_ptr<Node>;
 
 class RuleSet : public Node {
 public:
+  RuleSet(std::vector<NodePtr>&& rules) noexcept : rules_{std::move(rules)} {}
+
   virtual auto Kind() const noexcept -> NodeKind override {
     return NodeKind::kRuleSet;
-  }
-
-  auto AddRule(NodePtr&& rule) noexcept -> void {
-    assert(rule);
-    assert(rule->Kind() == NodeKind::kRule);
-    rules_.push_back(rule);
   }
 
 private:
@@ -94,14 +92,11 @@ private:
 
 class Sequence : public Node {
 public:
+  Sequence(std::vector<NodePtr>&& expressions) noexcept
+      : expressions_{std::move(expressions)} {}
+
   virtual auto Kind() const noexcept -> NodeKind override {
     return NodeKind::kSequence;
-  }
-
-  auto AddExpression(NodePtr&& expression) noexcept -> void {
-    assert(expression);
-    assert(IsExpressionNodeKind(expression->Kind()));
-    expressions_.push_back(std::move(expression));
   }
 
 private:
@@ -110,18 +105,15 @@ private:
 
 class OrderedChoice : public Node {
 public:
+  OrderedChoice(NodePtr&& expression) noexcept
+      : expression_{std::move(expression)} {}
+
   virtual auto Kind() const noexcept -> NodeKind override {
     return NodeKind::kOrderedChoice;
   }
 
-  auto AddExpression(NodePtr&& expression) noexcept -> void {
-    assert(expression);
-    assert(IsExpressionNodeKind(expression->Kind()));
-    expressions_.push_back(std::move(expression));
-  }
-
 private:
-  std::vector<NodePtr> expressions_;
+  NodePtr expression_;
 };
 
 class ZeroOrMore : public Node {
@@ -276,6 +268,8 @@ private:
   auto ConsumeLeftArrowToken() noexcept -> Result<void, Error>;
   auto ParseExpression() noexcept -> Result<NodePtr, Error>;
   auto ParseGroup() noexcept -> Result<NodePtr, Error>;
+  auto ParseSequence() noexcept -> Result<NodePtr, Error>;
+  auto ParseOrderedChoice() noexcept -> Result<NodePtr, Error>;
 
   Lexer lexer_;
   std::optional<Token> lookahead_;
