@@ -12,8 +12,8 @@ namespace grammar {
 auto operator<<(std::ostream& os, const TokenKind kind) noexcept
     -> std::ostream& {
   switch (kind) {
-  case TokenKind::kEndOfFile:
-    os << "EndOfFile";
+  case TokenKind::kEndOfInput:
+    os << "EndOfInput";
     break;
   case TokenKind::kWhitespace:
     os << "Whitespace";
@@ -267,7 +267,7 @@ auto OnMatchAround(std::vector<std::pair<char, char>>&& matches) -> OnMatch {
 Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
   matchers_ = {
       LexerMatcher{
-          TokenKind::kEndOfFile,
+          TokenKind::kEndOfInput,
           [](const LexerContext& ctx) -> std::optional<std::string_view> {
             if (const auto ch = ctx.Peek()) {
               return std::nullopt;
@@ -278,7 +278,7 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
       LexerMatcher{TokenKind::kWhitespace, OnMatchSimple({" ", "\t"}),
                    std::nullopt, true},
       LexerMatcher{TokenKind::kNewLine, OnMatchSimple({"\n", "\r\n"}),
-                   std::nullopt, true},
+                   std::nullopt},
       LexerMatcher{
           TokenKind::kLeftArrow,
           OnMatchSimple({"<-"}),

@@ -12,7 +12,7 @@ namespace peg {
 namespace grammar {
 
 enum class TokenKind {
-  kEndOfFile = 0,
+  kEndOfInput = 0,
   kWhitespace,        // ' ' or \t
   kNewLine,           // \n or \r\n
   kLeftArrow,         // <-
