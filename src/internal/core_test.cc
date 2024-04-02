@@ -56,3 +56,25 @@ TEST(ResultVoidTest, PrintErr) {
   oss << res;
   EXPECT_EQ(oss.str(), "Result{Err{1}}");
 }
+
+class Message {
+public:
+  Message(std::string&& message) noexcept : message{std::move(message)} {}
+
+  Message(Message&&) noexcept = default;
+  ~Message() noexcept = default;
+  auto operator=(Message&&) noexcept -> Message& = default;
+
+  Message(const Message&) = delete;
+  auto operator=(const Message&) -> Message& = delete;
+
+  std::string message;
+};
+
+TEST(ResultMoveTest, Ok) {
+  auto res{kero::peg::Result<Message, bool>{Message{"a"}}};
+  EXPECT_TRUE(res.IsOk());
+  EXPECT_FALSE(res.IsErr());
+  EXPECT_EQ(res.Ok()->message, "a");
+  EXPECT_EQ(res.Ok()->message, "");
+}

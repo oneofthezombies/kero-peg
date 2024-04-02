@@ -27,7 +27,7 @@ public:
 
   auto Ok() noexcept -> std::optional<T> {
     if (IsOk()) {
-      return std::get<T>(var_);
+      return std::get<T>(std::move(var_));
     }
 
     return std::nullopt;
@@ -35,7 +35,7 @@ public:
 
   auto Err() noexcept -> std::optional<E> {
     if (IsErr()) {
-      return std::get<E>(var_);
+      return std::get<E>(std::move(var_));
     }
 
     return std::nullopt;
