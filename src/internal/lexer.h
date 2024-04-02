@@ -5,11 +5,10 @@
 #include <optional>
 #include <string_view>
 
-#include "../core.h"
+#include "./core.h"
 
 namespace kero {
 namespace peg {
-namespace grammar {
 
 enum class TokenKind : int32_t {
   kEndOfInput = 0,
@@ -25,6 +24,7 @@ enum class TokenKind : int32_t {
   kExclamationMark,   // !
   kSlash,             // /
   kDot,               // .
+  kCaret,             // ^
   kNonTerminal,       // e.g. A
   kQuotedTerminal,    // e.g. 'a' or "a"
   kBracketedTerminal, // e.g. [a]
@@ -60,11 +60,11 @@ public:
   LexerContext(const std::string_view source) noexcept;
 
   auto Peek() const noexcept -> std::optional<char>;
-  auto Source() const noexcept -> std::string_view;
-  auto Position() const noexcept -> size_t;
-  auto Line() const noexcept -> size_t;
-  auto Column() const noexcept -> size_t;
-  auto Location() const noexcept -> Location;
+  auto GetSource() const noexcept -> std::string_view;
+  auto GetPosition() const noexcept -> size_t;
+  auto GetLine() const noexcept -> size_t;
+  auto GetColumn() const noexcept -> size_t;
+  auto GetLocation() const noexcept -> Location;
   auto Match(const std::string_view expected) const noexcept
       -> std::optional<std::string_view>;
   auto Consume(const size_t size) noexcept -> bool;
@@ -135,7 +135,6 @@ private:
   std::vector<LexerMatcher> matchers_;
 };
 
-} // namespace grammar
 } // namespace peg
 } // namespace kero
 

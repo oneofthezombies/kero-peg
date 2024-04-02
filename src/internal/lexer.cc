@@ -1,13 +1,12 @@
-#include "lexer.h"
+#include "./lexer.h"
 
 #include <cctype>
 #include <ostream>
 
-#include "../core.h"
+#include "./core.h"
 
 namespace kero {
 namespace peg {
-namespace grammar {
 
 auto operator<<(std::ostream& os, const TokenKind kind) noexcept
     -> std::ostream& {
@@ -59,6 +58,9 @@ auto operator<<(std::ostream& os, const TokenKind kind) noexcept
     break;
   case TokenKind::kBracketedTerminal:
     os << "BracketedTerminal";
+    break;
+  case TokenKind::kCaret:
+    os << "Caret";
     break;
   }
 
@@ -174,18 +176,18 @@ auto LexerContext::Peek() const noexcept -> std::optional<char> {
   return source_[position_];
 }
 
-auto LexerContext::Source() const noexcept -> std::string_view {
+auto LexerContext::GetSource() const noexcept -> std::string_view {
   return source_;
 }
 
-auto LexerContext::Position() const noexcept -> size_t { return position_; }
+auto LexerContext::GetPosition() const noexcept -> size_t { return position_; }
 
-auto LexerContext::Line() const noexcept -> size_t { return line_; }
+auto LexerContext::GetLine() const noexcept -> size_t { return line_; }
 
-auto LexerContext::Column() const noexcept -> size_t { return column_; }
+auto LexerContext::GetColumn() const noexcept -> size_t { return column_; }
 
-auto LexerContext::Location() const noexcept -> kero::peg::grammar::Location {
-  return kero::peg::grammar::Location{position_, line_, column_};
+auto LexerContext::GetLocation() const noexcept -> Location {
+  return Location{position_, line_, column_};
 }
 
 auto LexerContext::Match(const std::string_view expected) const noexcept
@@ -247,11 +249,12 @@ auto OnMatchAround(std::vector<std::pair<char, char>>&& matches) -> OnMatch {
     if (const auto ch = ctx.Peek()) {
       for (const auto& [open, close] : matches) {
         if (*ch == open) {
-          const auto source = ctx.Source();
-          for (size_t i = ctx.Position() + 1; i < source.size(); ++i) {
+          const auto source = ctx.GetSource();
+          for (size_t i = ctx.GetPosition() + 1; i < source.size(); ++i) {
             const auto current = source[i];
             if (current == close) {
-              return source.substr(ctx.Position(), i - ctx.Position() + 1);
+              return source.substr(ctx.GetPosition(),
+                                   i - ctx.GetPosition() + 1);
             }
           }
 
@@ -319,6 +322,10 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
           TokenKind::kDot,
           OnMatchSimple({"."}),
       },
+      LexerMatcher{
+          TokenKind::kCaret,
+          OnMatchSimple({"^"}),
+      },
       LexerMatcher{TokenKind::kQuotedTerminal,
                    OnMatchAround({{'\'', '\''}, {'"', '"'}}),
                    [](const LexerContext& ctx, const std::string_view original)
@@ -332,7 +339,7 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
             std::optional<char> left{};
             std::optional<char> right{};
             auto value{original.substr(1, original.size() - 2)};
-            auto location = ctx.Location();
+            auto location = ctx.GetLocation();
             location.position += 1;
             location.column += 1;
 
@@ -437,15 +444,16 @@ Lexer::Lexer(const std::string_view source) noexcept : context_{source} {
           [](const LexerContext& ctx) -> std::optional<std::string_view> {
             if (const auto ch = ctx.Peek()) {
               if (std::isalpha(*ch)) {
-                const auto source = ctx.Source();
-                for (size_t i = ctx.Position(); i < source.size(); ++i) {
+                const auto source = ctx.GetSource();
+                for (size_t i = ctx.GetPosition(); i < source.size(); ++i) {
                   const auto current = source[i];
                   if (!std::isalnum(current) && current != '_') {
-                    return source.substr(ctx.Position(), i - ctx.Position());
+                    return source.substr(ctx.GetPosition(),
+                                         i - ctx.GetPosition());
                   }
                 }
 
-                return source.substr(ctx.Position());
+                return source.substr(ctx.GetPosition());
               }
             }
 
@@ -470,13 +478,13 @@ auto Lexer::Next() noexcept -> Result<Token, TokenizeError> {
       }
     }
 
-    const auto original_start = context_.Location();
+    const auto original_start = context_.GetLocation();
     if (!matched) {
       return TokenizeError{TokenizeErrorCode::kMatchFailed, original_start};
     }
 
     context_.Consume(matched->size());
-    const auto original_end = context_.Location();
+    const auto original_end = context_.GetLocation();
 
     if (!matcher_i) {
       return TokenizeError{TokenizeErrorCode::kInternalMatcherNotFound,
@@ -505,6 +513,5 @@ auto Lexer::Next() noexcept -> Result<Token, TokenizeError> {
   }
 }
 
-} // namespace grammar
 } // namespace peg
 } // namespace kero
