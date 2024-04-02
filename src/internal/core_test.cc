@@ -7,6 +7,7 @@ TEST(ResultTest, Ok) {
   EXPECT_TRUE(res.IsOk());
   EXPECT_FALSE(res.IsErr());
   EXPECT_EQ(*res.Ok(), 2);
+  EXPECT_FALSE(res.IsOk());
 }
 
 TEST(ResultTest, Err) {
@@ -14,6 +15,7 @@ TEST(ResultTest, Err) {
   EXPECT_FALSE(res.IsOk());
   EXPECT_TRUE(res.IsErr());
   EXPECT_EQ(*res.Err(), true);
+  EXPECT_FALSE(res.IsErr());
 }
 
 TEST(ResultTest, PrintOk) {
@@ -34,6 +36,8 @@ TEST(ResultVoidTest, Ok) {
   auto res{kero::peg::Result<void, bool>{}};
   EXPECT_TRUE(res.IsOk());
   EXPECT_FALSE(res.IsErr());
+  res.Ok();
+  EXPECT_FALSE(res.IsOk());
 }
 
 TEST(ResultVoidTest, Err) {
@@ -41,6 +45,7 @@ TEST(ResultVoidTest, Err) {
   EXPECT_FALSE(res.IsOk());
   EXPECT_TRUE(res.IsErr());
   EXPECT_EQ(*res.Err(), true);
+  EXPECT_FALSE(res.IsErr());
 }
 
 TEST(ResultVoidTest, PrintOk) {
@@ -76,7 +81,7 @@ TEST(ResultMoveTest, Ok) {
   EXPECT_TRUE(res.IsOk());
   EXPECT_FALSE(res.IsErr());
   EXPECT_EQ(res.Ok()->data, "a");
-  EXPECT_EQ(res.Ok()->data, "");
+  EXPECT_FALSE(res.IsOk());
 }
 
 TEST(ResultAndThen, Ok) {

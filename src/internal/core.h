@@ -1,17 +1,17 @@
 #ifndef KERO_PEG_INTERNAL_CORE_H
 #define KERO_PEG_INTERNAL_CORE_H
 
+#include <cassert>
 #include <optional>
 #include <ostream>
-#include <variant>
 
 namespace kero {
 namespace peg {
 
 template <typename T, typename E> class Result {
 public:
-  Result(T&& data) noexcept : var_{std::move(data)} {}
-  Result(E&& error) noexcept : var_{std::move(error)} {}
+  Result(T&& data) noexcept : data_{std::move(data)} {}
+  Result(E&& error) noexcept : error_{std::move(error)} {}
   Result(Result&&) noexcept = default;
   ~Result() noexcept = default;
   auto operator=(Result&&) -> Result& = default;
@@ -19,48 +19,63 @@ public:
   Result(const Result&) = delete;
   auto operator=(const Result&) -> Result& = delete;
 
-  auto IsOk() const noexcept -> bool { return std::holds_alternative<T>(var_); }
+  auto IsOk() const noexcept -> bool { return data_.has_value(); }
 
-  auto IsErr() const noexcept -> bool {
-    return std::holds_alternative<E>(var_);
-  }
+  auto IsErr() const noexcept -> bool { return error_.has_value(); }
 
   auto Ok() noexcept -> std::optional<T> {
     if (IsOk()) {
-      return std::get<T>(std::move(var_));
+      assert(data_.has_value());
+      assert(!error_.has_value());
+      auto data = std::move(data_);
+      data_.reset();
+      return data;
     }
-
     return std::nullopt;
   }
 
   auto Err() noexcept -> std::optional<E> {
     if (IsErr()) {
-      return std::get<E>(std::move(var_));
+      assert(!data_.has_value());
+      assert(error_.has_value());
+      auto error = std::move(error_);
+      error_.reset();
+      return error;
     }
-
     return std::nullopt;
   }
 
   template <typename F>
   auto AndThen(F&& f) noexcept -> decltype(f(std::declval<T>())) {
+    static_assert(std::is_invocable_v<F, T>,
+                  "Function must be invocable with T");
     if (IsOk()) {
-      return f(std::get<T>(std::move(var_)));
+      assert(data_.has_value());
+      assert(!error_.has_value());
+      return std::forward<F>(f)(std::move(*data_));
     }
-
-    return std::get<E>(std::move(var_));
+    assert(!data_.has_value());
+    assert(error_.has_value());
+    return decltype(f(std::declval<T>())){std::move(*error_)};
   }
 
   template <typename F>
   auto OrElse(F&& f) noexcept -> decltype(f(std::declval<E>())) {
+    static_assert(std::is_invocable_v<F, E>,
+                  "Function must be invocable with E");
     if (IsErr()) {
-      return f(std::get<E>(std::move(var_)));
+      assert(!data_.has_value());
+      assert(error_.has_value());
+      return std::forward<F>(f)(std::move(*error_));
     }
-
-    return std::get<T>(std::move(var_));
+    assert(data_.has_value());
+    assert(!error_.has_value());
+    return decltype(f(std::declval<E>())){std::move(*data_)};
   }
 
 private:
-  std::variant<T, E> var_;
+  std::optional<T> data_;
+  std::optional<E> error_;
 };
 
 template <typename T, typename E>
@@ -80,8 +95,13 @@ auto operator<<(std::ostream& os, Result<T, E>& result) -> std::ostream& {
 }
 
 template <typename E> class Result<void, E> {
+private:
+  struct Void {
+    bool value{true};
+  };
+
 public:
-  Result() noexcept = default;
+  Result() noexcept : data_{Void{}} {}
   Result(E&& error) noexcept : error_{std::move(error)} {}
   Result(Result&&) noexcept = default;
   ~Result() noexcept = default;
@@ -90,38 +110,61 @@ public:
   Result(const Result&) = delete;
   auto operator=(const Result&) -> Result& = delete;
 
-  auto IsOk() const noexcept -> bool { return !error_; }
+  auto IsOk() const noexcept -> bool { return data_.has_value(); }
 
-  auto IsErr() const noexcept -> bool { return !!error_; }
+  auto IsErr() const noexcept -> bool { return error_.has_value(); }
 
-  auto Ok() noexcept -> void {}
+  auto Ok() noexcept -> void {
+    if (IsOk()) {
+      assert(data_.has_value());
+      assert(!error_.has_value());
+      data_.reset();
+      return;
+    }
+  }
 
   auto Err() noexcept -> std::optional<E> {
     if (IsErr()) {
-      return error_;
+      assert(!data_.has_value());
+      assert(error_.has_value());
+      auto error = std::move(error_);
+      error_.reset();
+      return error;
     }
-
     return std::nullopt;
   }
 
   template <typename F> auto AndThen(F&& f) noexcept -> decltype(f()) {
+    static_assert(std::is_invocable_v<F>,
+                  "Function must be invocable without arguments");
     if (IsOk()) {
-      return f();
+      assert(data_.has_value());
+      assert(!error_.has_value());
+      data_.reset();
+      return std::forward<F>(f)();
     }
-
-    return std::get<E>(std::move(error_));
+    assert(!data_.has_value());
+    assert(error_.has_value());
+    return decltype(f()){std::move(*error_)};
   }
 
   template <typename F>
   auto OrElse(F&& f) noexcept -> decltype(f(std::declval<E>())) {
+    static_assert(std::is_invocable_v<F, E>,
+                  "Function must be invocable with E");
     if (IsErr()) {
-      return f(std::get<E>(std::move(error_)));
+      assert(!data_.has_value());
+      assert(error_.has_value());
+      return std::forward<F>(f)(std::move(*error_));
     }
-
-    return Result<void, E>{};
+    assert(data_.has_value());
+    assert(!error_.has_value());
+    data_.reset();
+    return decltype(f(std::declval<E>())){};
   }
 
 private:
+  std::optional<Void> data_;
   std::optional<E> error_;
 };
 
