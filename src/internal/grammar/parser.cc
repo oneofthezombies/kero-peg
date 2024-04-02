@@ -9,21 +9,22 @@ namespace grammar {
 Parser::Parser(const std::string_view source) noexcept : lexer_{source} {}
 
 auto Parser::Parse() noexcept -> void {
-  auto next_res = lexer_.Next();
-  if (next_res.IsErr()) {
-    std::cout << *next_res.Err() << std::endl;
-    return;
-  }
+  auto stack = std::vector<Node*>{};
+  stack.push_back(new RuleSetNode{});
 
-  const auto token{std::move(*next_res.Ok())};
-  switch (token.kind) {
-  case TokenKind::kNonTerminal:
-    auto inner_token = lexer_.Next();
-    if (inner_token.IsErr()) {
-      std::cout << *inner_token.Err() << std::endl;
-      return;
+  while (true) {
+    auto res = lexer_.Next();
+    if (res.IsErr()) {
+      std::cerr << "Error: " << *res.Err() << std::endl;
+      break;
     }
-    break;
+
+    auto token = *res.Ok();
+    if (token.kind == TokenKind::kEndOfInput) {
+      break;
+    }
+
+    switch (token.kind) {}
   }
 }
 

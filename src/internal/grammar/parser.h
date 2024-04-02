@@ -8,8 +8,8 @@ namespace peg {
 namespace grammar {
 
 enum class NodeKind : int32_t {
-  kNonTerminal = 0,
-  kTerminal,
+  kRuleSet = 0,
+  kRule,
   kSequence,
   kOrderedChoice,
   kZeroOrMore,
@@ -18,31 +18,183 @@ enum class NodeKind : int32_t {
   kAndPredicate,
   kNotPredicate,
   kGroup,
+  kQuotedTerminal,
+  kBracketedTerminal,
 };
 
-struct Node {
-  Token token;
-  NodeKind kind;
-};
-
-using RuleId = int32_t;
-
-class Symbol {
+class Node {
 public:
-  auto IsTerminal() const noexcept -> bool;
-  auto IsNonTerminal() const noexcept -> bool;
-
-  auto NonTerminal() const noexcept -> RuleId;
+  virtual ~Node() noexcept = default;
+  virtual auto Kind() const noexcept -> NodeKind = 0;
 };
 
-using Sequence = std::vector<Symbol>;
-
-class Rule {
+class RuleSetNode : public Node {
 public:
-  auto Choices() const noexcept -> const std::vector<Sequence>&;
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kRuleSet;
+  }
+
+  auto AddRule(Node* rule) noexcept -> void { rules_.push_back(rule); }
 
 private:
-  std::vector<Sequence> choices_;
+  std::vector<Node*> rules_;
+};
+
+class RuleNode : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kRule;
+  }
+
+  auto SetName(const std::string_view name) noexcept -> void { name_ = name; }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  std::string_view name_;
+  Node* expression_{nullptr};
+};
+
+class SequenceNode : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kSequence;
+  }
+
+  auto AddExpression(Node* expression) noexcept -> void {
+    expressions_.push_back(expression);
+  }
+
+private:
+  std::vector<Node*> expressions_;
+};
+
+class OrderedChoiceNode : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kOrderedChoice;
+  }
+
+  auto AddExpression(Node* expression) noexcept -> void {
+    expressions_.push_back(expression);
+  }
+
+private:
+  std::vector<Node*> expressions_;
+};
+
+class ZeroOrMore : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kZeroOrMore;
+  }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  Node* expression_{nullptr};
+};
+
+class OneOrMore : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kOneOrMore;
+  }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  Node* expression_{nullptr};
+};
+
+class Optional : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kOptional;
+  }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  Node* expression_{nullptr};
+};
+
+class AndPredicate : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kAndPredicate;
+  }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  Node* expression_{nullptr};
+};
+
+class NotPredicate : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kNotPredicate;
+  }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  Node* expression_{nullptr};
+};
+
+class Group : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kGroup;
+  }
+
+  auto SetExpression(Node* expression) noexcept -> void {
+    expression_ = expression;
+  }
+
+private:
+  Node* expression_{nullptr};
+};
+
+class QuotedTerminal : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kQuotedTerminal;
+  }
+
+  auto SetString(const std::string_view string) noexcept -> void {
+    string_ = string;
+  }
+
+private:
+  std::string_view string_;
+};
+
+class BracketedTerminal : public Node {
+public:
+  virtual auto Kind() const noexcept -> NodeKind override {
+    return NodeKind::kBracketedTerminal;
+  }
+
+  auto SetString(const std::string_view string) noexcept -> void {
+    string_ = string;
+  }
+
+private:
+  std::string_view string_;
 };
 
 enum class ParseErrorCode : int32_t {};

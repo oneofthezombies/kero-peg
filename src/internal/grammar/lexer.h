@@ -11,7 +11,7 @@ namespace kero {
 namespace peg {
 namespace grammar {
 
-enum class TokenKind {
+enum class TokenKind : int32_t {
   kEndOfInput = 0,
   kWhitespace,        // ' ' or \t
   kNewLine,           // \n or \r\n
