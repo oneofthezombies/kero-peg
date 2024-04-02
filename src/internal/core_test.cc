@@ -59,7 +59,7 @@ TEST(ResultVoidTest, PrintErr) {
 
 class Message {
 public:
-  Message(std::string&& message) noexcept : message{std::move(message)} {}
+  Message(std::string&& data) noexcept : data{std::move(data)} {}
 
   Message(Message&&) noexcept = default;
   ~Message() noexcept = default;
@@ -68,13 +68,37 @@ public:
   Message(const Message&) = delete;
   auto operator=(const Message&) -> Message& = delete;
 
-  std::string message;
+  std::string data;
 };
 
 TEST(ResultMoveTest, Ok) {
   auto res{kero::peg::Result<Message, bool>{Message{"a"}}};
   EXPECT_TRUE(res.IsOk());
   EXPECT_FALSE(res.IsErr());
-  EXPECT_EQ(res.Ok()->message, "a");
-  EXPECT_EQ(res.Ok()->message, "");
+  EXPECT_EQ(res.Ok()->data, "a");
+  EXPECT_EQ(res.Ok()->data, "");
+}
+
+TEST(ResultAndThen, Ok) {
+  auto res{kero::peg::Result<Message, bool>{Message{"a"}}};
+  res.AndThen([](auto&& message) {
+       EXPECT_EQ(message.data, "a");
+       return kero::peg::Result<int, bool>{2};
+     })
+      .AndThen([](auto&& value) {
+        EXPECT_EQ(value, 2);
+        return kero::peg::Result<void, bool>{};
+      });
+}
+
+TEST(ResultOrElse, Ok) {
+  auto res{kero::peg::Result<Message, bool>{true}};
+  res.OrElse([](auto&& error) {
+       EXPECT_EQ(error, true);
+       return kero::peg::Result<Message, int>{2};
+     })
+      .OrElse([](auto&& error) {
+        EXPECT_EQ(error, 2);
+        return kero::peg::Result<Message, float>{3.0f};
+      });
 }

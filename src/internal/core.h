@@ -41,6 +41,24 @@ public:
     return std::nullopt;
   }
 
+  template <typename F>
+  auto AndThen(F&& f) noexcept -> decltype(f(std::declval<T>())) {
+    if (IsOk()) {
+      return f(std::get<T>(std::move(var_)));
+    }
+
+    return std::get<E>(std::move(var_));
+  }
+
+  template <typename F>
+  auto OrElse(F&& f) noexcept -> decltype(f(std::declval<E>())) {
+    if (IsErr()) {
+      return f(std::get<E>(std::move(var_)));
+    }
+
+    return std::get<T>(std::move(var_));
+  }
+
 private:
   std::variant<T, E> var_;
 };
@@ -84,6 +102,23 @@ public:
     }
 
     return std::nullopt;
+  }
+
+  template <typename F> auto AndThen(F&& f) noexcept -> decltype(f()) {
+    if (IsOk()) {
+      return f();
+    }
+
+    return std::get<E>(std::move(error_));
+  }
+
+  template <typename F>
+  auto OrElse(F&& f) noexcept -> decltype(f(std::declval<E>())) {
+    if (IsErr()) {
+      return f(std::get<E>(std::move(error_)));
+    }
+
+    return Result<void, E>{};
   }
 
 private:
